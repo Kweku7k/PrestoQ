@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Friendly AI Finance Buddy</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+
+</head>
+<body>
+    <div class="row">
+        <div class="col-md-6">
+
+      
+    <div class="chat-container">
+        <h1>💸 Presto Q Finance Assistant</h1>
+        <div id="chat-box"></div>
+
+        <input type="number" id="budget-input" placeholder="Set your budget (optional)">
+        <input type="text" id="user-input" value="I want to get the new balance 9060's shoe" placeholder="Ask me something..." autofocus>
+        <button onclick="sendMessage()">Send</button>
+    </div>
+    </div>
+    </div>
+
+    <script>
+        const chatBox = document.getElementById("chat-box");
+        const userInput = document.getElementById("user-input");
+        const budgetInput = document.getElementById("budget-input");
+
+        let sessionId = localStorage.getItem("sessionId") || crypto.randomUUID();
+        localStorage.setItem("sessionId", sessionId);
+
+        function appendMessage(role, text) {
+            const message = document.createElement("div");
+            message.textContent = `${role === "user" ? "🧍 You" : "🤖 AI"}: ${text}`;
+            chatBox.appendChild(message);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        async function sendMessage() {
+            const message = userInput.value.trim();
+            const budget = budgetInput.value.trim();
+
+            if (!message) return;
+
+            appendMessage("user", message);
+            userInput.value = "";
+
+            const res = await fetch("/chat", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    message,
+                    session_id: sessionId,
+                    budget: budget || null
+                })
+            });
+
+            const data = await res.json();
+            if (data.response) {
+                appendMessage("ai", data.response);
+            } else {
+                appendMessage("ai", "Oops! Something went wrong.");
+                console.error(data.error);
+            }
+        }
+    </script>
+</body>
+</html>
