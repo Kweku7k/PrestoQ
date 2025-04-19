@@ -1,0 +1,183 @@
+body{
+    font-family: 'Manrope', serif;
+}
+
+
+section{
+    margin-bottom: 10vh;
+}
+
+label{
+    margin-bottom: 5px;
+}
+
+.form-field{
+    width: 100%; 
+    padding: 10px 20px;
+    border: 1px solid #e4e4e4;   
+    border-radius: 10px;
+    margin-bottom: 5px;
+}
+
+.nav{   
+    font-weight: 400;
+}
+
+.hero{
+    margin: 10vh 0;
+    text-align: center;
+}
+
+.logo{
+    font-family: 'Manrope', serif;
+    font-weight: 600;
+    letter-spacing: -0.2px;
+    color: blue;
+}
+
+.pill-button{
+    font-family: 'Manrope', serif;
+    background-color: black;
+    color: white;
+    padding: 16px 20px;
+    border-radius: 20px;
+    box-shadow: none;
+    border: 0;
+}
+
+.waiting-list{
+    font-family: 'Manrope', serif;
+    font-weight: 600;
+    font-size: 24px;
+    color: #333;
+    display: flex;
+    justify-content: center;
+}
+
+.hero-heading{
+    width: 80%;
+    margin: auto;
+    font-family: 'Manrope', serif;
+    font-size: 56px;
+    font-weight: 600;
+    letter-spacing: -2.5px;
+}
+
+.section-heading{
+    /* width: 80%; */
+    font-family: 'Manrope', serif;
+    font-size: 56px;
+    font-weight: 600;
+    letter-spacing: -2.5px;
+}
+
+.heading{
+    font-family: 'Manrope', serif;
+    font-size: 64px;
+    font-weight: 600;
+}
+
+.subheading{
+    font-family: 'Manrope', serif;
+    font-weight: 400;
+    margin: auto;
+    flex-direction: column;
+    font-size: 18px;
+}
+
+.card{
+    background-color: #eff0f1;
+    border-radius: 20px;
+    border: none;
+    padding: 40px;
+    margin: 20px;
+}
+.feedback-card{
+    background-color: #0a0a0a;
+    border-radius: 20px;
+    border: none;
+    padding: 40px;
+}
+
+.feedback-text{
+    color:white;
+    opacity: 0.6;
+    font-weight: 600;
+}
+.testimonial-image{
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    margin: auto;
+}
+
+.full{
+    width: 100%;
+}
+
+.flex{
+    display: flex ;
+}
+
+.feature-heading{
+    margin: auto;
+    margin-top: 10vh;
+    font-family: 'Manrope', serif;
+    font-size: 56px;
+    font-weight: 600;
+    letter-spacing: -2.5px;
+}
+
+.feature-subheading{
+    font-family: 'Manrope', serif;
+    font-weight: 400;
+    /* width: 70%; */
+    flex-direction: column;
+    font-size: 18px;
+}
+
+.feature{
+    margin-bottom: 10vh;
+    display: flex;
+    align-items: center;
+}
+.app-card{
+    background-color: black;
+    border-radius: 20px;
+    /* height: 30vh; */
+    padding: 30px;
+
+}
+
+
+.chat-container {
+    background: white;
+    border-radius: 12px;
+    /* box-shadow: 0 0 10px rgba(0,0,0,0.1); */
+    width: 90%;
+    max-width: 500px;
+    padding: 20px;
+    margin: auto;
+}
+
+#chat-box {
+    height: 50vh;
+    overflow-y: auto;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 10px;
+    margin-bottom: 10px;
+    background: #fafafa;
+}
+
+#chat-box div {
+    margin: 5px 0;
+}
+
+/* input[type="text"], input[type="number"] {
+    width: calc(100% - 22px);
+    padding: 10px;
+    margin-bottom: 10px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+} */

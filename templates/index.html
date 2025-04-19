@@ -1,112 +1,386 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Friendly AI Finance Buddy</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 
-</head>
+{% extends "layout.html" %}
 
-<!doctype html>
-<html lang="en">
-    <head>
-        <title>Presto Q</title>
-        <!-- Required meta tags -->
-        <meta charset="utf-8" />
-        <meta
-            name="viewport"
-            content="width=device-width, initial-scale=1, shrink-to-fit=no"
-        />
+{% block body %}
 
-        <!-- Bootstrap CSS v5.2.1 -->
-        <link
-            href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
-            rel="stylesheet"
-            integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN"
-            crossorigin="anonymous"
-        />
-    </head>
+    <main>
+        <div class="body">
 
-    <body>
+            <div class="container">
 
-        <main>
+                <div class="hero">
+                    <img src="{{url_for('static', filename='/img/b-logo.png')}}" alt="" style="margin-bottom: 10px;">
 
-            
-            <div class="row">
-                    <div class="col">
-                        <div class="chat-container">
-                            <h1>💸 Presto Q AI</h1>
-                            <div id="chat-box"></div>
-                            
-                            <input type="number" id="budget-input" placeholder="Set your budget (optional)">
-                            <input type="text" id="user-input" placeholder="What are we buying!" autofocus>
-                            <button onclick="sendMessage()">Send</button>
-                        </div>
+                    <h1 class="hero-heading">Look at You, Watching Others Get Rich… Time to Catch Up!</h1>
+                    <br />
+                    <p class="subheading text-muted"> Join our early access program and shape the future of AI-driven
+                        finance!</p>
+                    <br />
+                    <div class="input-group waiting-list"  data-aos="zoom-in" style="margin: auto; width: 70vw;">
+                        <form class="d-flex" id="join-form">
+                            <input class="form-field" style="font-size: small;" type="text"
+                                placeholder="Enter Your Email" />
+                            <button class="pill-button" id="join-form-submit" style="font-size: small;" type="submit">
+                                Join
+                            </button>
+                        </form>
                     </div>
+                </div>
             </div>
 
-        </main>
-        <footer>
-            <!-- place footer here -->
-        </footer>
-        <!-- Bootstrap JavaScript Libraries -->
-        <script
-            src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js"
-            integrity="sha384-I7E8VVD/ismYTF4hNIPjVp/Zjvgyol6VFvRkX/vR+Vc4jQkC+hVqc2pM8ODewa9r"
-            crossorigin="anonymous"
-        ></script>
+            <section>
+                <div class="container">
+                    <div class="row app-card" style="color: white; align-items: center;">
+                        <div class="col-md-4 d-flex">
+                            <h2 class="section-heading" style="color: white;">Follow My Dev Journey</h2>
+                        </div>
+                        <div class="col-md-4">
 
-        <script
-            src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.min.js"
-            integrity="sha384-BBtl+eGJRgqQAUMxJ7pMwbEyER4l1g+O15P+16Ep7Q9Q+zqX6gSbd85u4mG4QzX+"
-            crossorigin="anonymous"
-        ></script>
+                            <ul class="list-unstyled">
+                                <li class="card" style="background-color: white; padding: 15px;">
+                                    <a href="https://www.linkedin.com/in/adumatta/"
+                                        class="text-white me-3 d-flex align-items-center">
+                                        <i class="fab fa-linkedin fa-2x" style="color: black;"></i>
+                                        <h6 style="color: black; margin-bottom: 0; margin-left: 10px;">Nana Kweku
+                                            Adumatta</h6>
+                                    </a>
+                                </li>
+                                <li class="card" style="background-color: white; padding: 15px;">
+                                    <a href="https://www.tiktok.com/@adumatta4"
+                                        class="text-white me-3 d-flex align-items-center">
+                                        <i class="fab fa-tiktok fa-2x" style="color: black;"></i>
+                                        <h6 style="color: black; margin-bottom: 0; margin-left: 10px;">@adumatta4</h6>
+                                    </a>
+                                </li>
 
+
+                            </ul>
+
+                        </div>
+                        <div class="col-md-4">
+                            <h4>A Lot About Me</h4>
+                            <h6 class="feedback-text">I am currently a python fullstack developer, I am
+                                building this application to help me manage my finances and also help others manage
+                                theirs.
+                            </h6>
+                        </div>
+                    </div>
+            </section>
+
+            <section>
+                <div class="container">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="row">
+                                <div class="container">
+
+
+                                    <h2 class="section-heading">Help Me Shape Your AI Finance Assistant</h2>
+                                    <h4 class="subheading">Tell me what features you'd love to see. Your feedback helps
+                                        me
+                                        build the best AI-powered finance tool for you!</h4>
+                                    <br />
+                                    <div class="feedback-card">
+                                        <p class="feedback-text">I created this AI assistant to help you make better
+                                            financial decisions—without the hassle. Join me
+                                            and help shape the future of AI-powered finance!</p>
+
+                                        <div class="flex">
+                                            <div class="ellipse" style="margin-right: 10px;">
+                                                <img src="https://instagram.facc1-1.fna.fbcdn.net/v/t51.2885-19/472821520_1041524191352290_4766122785979251894_n.jpg?_nc_ht=instagram.facc1-1.fna.fbcdn.net&_nc_cat=110&_nc_oc=Q6cZ2QE2VNxsPbuN9l2WT9xSFxXVmCJDdxUjZKwGU0dwAxOrSRYA7b7LstpNd1YUNBIJqwE&_nc_ohc=7aAdiVvxMJEQ7kNvwH3noNR&_nc_gid=0PJEJVj46Lrn0PayjimlrQ&edm=AP4sbd4BAAAA&ccb=7-5&oh=00_AfFY7Et7RJIcgTw3Tj_XC98Wf6cWHOBSKcsiUzU5PCg5lw&oe=68096F21&_nc_sid=7a9f4b"
+                                                    class="testimonial-image" />
+                                            </div>
+                                            <div>
+                                                <h4 class="subheading"
+                                                    style="color: white; font-weight: 800; margin-bottom: 5px;">Nana
+                                                    Kweku
+                                                    Adumatta</h4>
+                                                <h6 class="feedback-text">Chief Dreamer</h6>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <form class="card">
+                                <div class="mb-3">
+                                    <label for="">Name*</label>
+                                    <input type="text" class="form-field" , placeholder="Your Name">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="">Phone*</label>
+                                    <input type="text" class="form-field" , placeholder="Enter Your Phone Number">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="">Email*</label>
+                                    <input type="text" class="form-field" , placeholder="Enter Your Email">
+                                </div>
+                                <!-- add a text area -->
+                                <div class="mb-3">
+                                    <label for="">Message*</label>
+                                    <textarea class="form-field" , placeholder="Enter Your Message"></textarea>
+                                </div>
+                                <button class="pill-button" type="submit">
+                                    Submit
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section>
+                <div class="container">
+                    <div class="row hero">
+                        <h1 class="hero-heading">Experience the Future <br /> of Smart Finance</h1>
+                        <h4 class="subheading">Discover powerful features and shape the future with your feedback.</h4>
+
+                    </div>
+                    <div class="row feature">
+                        <div class="col-md-6">
+                            <img src="{{url_for('static', filename='img/feature1.png')}}" alt="Personal Finance" class="img-fluid" />
+                        </div>
+                        <div class="col-md-6">
+                            <h4 class="feature-heading">Voice Enabled</h4>
+                            <br />
+                            <p class="feature-subheading">Chat with your AI just like you would with a friend—ask for financial advice, get personalized recommendations, and make informed money decisions without the stress. Whether you need to track expenses, set realistic budgets, or gain insights into your spending habits, your AI is here to help in a casual, approachable way. No complicated jargon, no overwhelming data—just simple, smart, and friendly financial guidance whenever you need it.</p>
+                            <br />
+                            
+                        </div>
+                    </div>
+                    <div class="row feature flex-row-reverse">
+                        <div class="col-md-6">
+                            <img src="{{url_for('static', filename='img/feature7.png')}}" alt="Personal Finance" class="img-fluid" />
+                        </div>
+                        <div class="col-md-6">
+                            <h4 class="feature-heading">Personal Experience</h4>
+                            <br />
+                            <p class="feature-subheading">Enjoy a truly personalized experience with your AI, designed to understand your unique wants and needs. Get tailored advice on your spending habits, receive insights that align with your financial goals, and make smarter money decisions effortlessly. Whether you’re looking to cut back on unnecessary expenses, optimize your savings, or plan for a major purchase, your AI is ready to help. Simply ask with your specific requirements, and get thoughtful recommendations to ensure every big purchase fits perfectly into your financial plan.</p>
+                            <br />
+                            
+                        </div>
+                    </div>
+                    <div class="row feature">
+                        <div class="col-md-6">
+                            <img src="{{url_for('static', filename='img/feature8.png')}}" alt="Personal Finance" class="img-fluid" />
+                        </div>
+                        <div class="col-md-6">
+                            <h4 class="feature-heading">Subscription Tracking</h4>
+                            <br />
+                            <p class="feature-subheading">Stay on top of your subscriptions with ease. Your AI keeps track of all your recurring payments, ensuring you never miss a due date. Get timely alerts before any charges hit your account, giving you the chance to review, adjust, or even cancel subscriptions if needed. No more surprise deductions—just seamless subscription management that helps you stay in control of your finances.</p>
+                            <br />
+                            
+                        </div>
+                    </div>
+                    <div class="row feature flex-row-reverse">
+                        <div class="col-md-6">
+                            <img src="{{url_for('static', filename='img/feature9.png')}}" alt="Personal Finance" class="img-fluid" />
+                        </div>
+                        <div class="col-md-6">
+                            <h4 class="feature-heading">Magic Receipt Tracking </h4>
+                            <br />
+                            <p class="feature-subheading">Effortlessly manage your spending with automated receipts. Your AI keeps track of payment receipts, logging them instantly for better financial insights. No more manual tracking—every transaction is organized, categorized, and ready for review whenever you need it. Whether it’s a grocery run, a subscription fee, or a big purchase, your AI ensures you have a clear record of where your money goes, helping you stay informed and in control.</p>
+                            <br />
+                            
+                        </div>
+                    </div>
+                    <!-- <div class="row feature">
+                        <div class="col-md-6">
+                            <img src="img/feature10.png" alt="Personal Finance" class="img-fluid" />
+                        </div>
+                        <div class="col-md-6">
+                            <h4 class="feature-heading">Reports For Your Mum</h4>
+                            <br />
+                            <p class="feature-subheading">Talk to your AI financial assistant just like you would with a
+                                real expert.
+                                Get instant insights, track expenses, set budgets, and receive smart financial advice—
+                                all hands-free and hassle-free.</p>
+                            <br />
+                            <button class="pill-button">
+                                Learn More
+                            </button>
+                        </div>
+                    </div> -->
+                </div>
+            </section>
+
+            <!-- <section>
+                <div class="container">
+                    <div class="row app-card" style="color: white; align-items: center;">
+                        <div class="col-md-4 d-flex">
+                            <h2 class="section-heading" style="color: white;">Get Early Access</h2>
+                        </div>
+                        <div class="col-md-4"></div>
+                        <div class="col-md-4">
+                            <h4>You Need Your Insights </h4>
+                            <h6 class="feedback-text">Automated features reduce the need for manual expense tracking,
+                                saving users valuable time. No more "Ah what happened to the money?"
+                            </h6>
+                        </div>
+                    </div>
+            </section> -->
+
+
+        </div>
+
+    </main>
+    <footer class="text-white py-4" style="background-color: black; margin-top: 10vh; ">
+        <div class="container" style="padding:10vh 2vw ;">
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="flex-row" style="display: flex;">
+                        <img src="{{url_for('static', filename='img/w-logo.png')}}" alt="PrestoQ Logo" class="mb-3" style="max-width: 30px;">
+                        <h5 style="margin-left: 20px;">Presto Q</h5>
+                    </div>
+                    <p class="subheading">
+                        PrestoQ is your AI-powered finance assistant, helping you take control of your financial future
+                        with ease.
+                    </p>
+                </div>
+                <div class="col-md-4">
+                    <h5>Contact Me</h5>
+                    <ul class="list-unstyled">
+                        <li>Email: <a href="mailto:mr.adumatta@gmail.com" class="text-white">mr.adumatta@gmail.com</a>
+                        </li>
+                        <li>Phone: <a href="tel:+233545977791" class="text-white">+233 54 597 7791</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-2">
+                    <h5>Follow Me</h5>
+                    <ul class="list-unstyled d-flex">
+                        <li><a href="https://www.youtube.com/@dumsday24" class="text-white me-3"><i
+                                    class="fab fa-youtube"></i></a></li>
+
+                        <li><a href="https://www.instagram.com/mr.kwekuuu/" class="text-white me-3"><i
+                                    class="fab fa-instagram"></i></a></li>
+
+                        <li><a href="https://www.linkedin.com/in/adumatta/" class="text-white me-3"><i
+                                    class="fab fa-linkedin-in"></i></a></li>
+
+                        <li><a href="https://www.tiktok.com/@adumatta4" class="text-white"><i
+                                    class="fab fa-tiktok"></i></a></li>
+                    </ul>
+                </div>
+                <div class="col-md-2">
+                    <h5>Quick Links</h5>
+                    <ul class="list-unstyled">
+                        <li><a href="#" class="text-white">Home</a></li>
+                        <li><a href="#" class="text-white">Features</a></li>
+                        <li><a href="#" class="text-white">Pricing</a></li>
+                        <li><a href="#" class="text-white">Contact</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="row mt-4">
+                <div class="col text-center">
+                    <p>&copy; 2025 PrestoQ. All rights reserved.</p>
+                    <h6>version 0.02</h6>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
 
     <script>
-        const chatBox = document.getElementById("chat-box");
-        const userInput = document.getElementById("user-input");
-        const budgetInput = document.getElementById("budget-input");
+        AOS.init();
+      </script>
+      
+    <!-- Bootstrap JavaScript Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js"
+        integrity="sha384-I7E8VVD/ismYTF4hNIPjVp/Zjvgyol6VFvRkX/vR+Vc4jQkC+hVqc2pM8ODewa9r"
+        crossorigin="anonymous"></script>
 
-        let sessionId = sessionStorage.getItem("sessionId") || crypto.randomUUID();
-        sessionStorage.setItem("sessionId", sessionId);
 
-        function appendMessage(role, text) {
-            const message = document.createElement("div");
-            message.textContent = `${role === "user" ? "🧍 You" : "🤖 AI"}: ${text}`;
-            chatBox.appendChild(message);
-            chatBox.scrollTop = chatBox.scrollHeight;
-        }
+    <script src="https://kit.fontawesome.com/091f1122a7.js" crossorigin="anonymous"></script>
 
-        async function sendMessage() {
-            const message = userInput.value.trim();
-            const budget = budgetInput.value.trim();
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.min.js"
+        integrity="sha384-BBtl+eGJRgqQAUMxJ7pMwbEyER4l1g+O15P+16Ep7Q9Q+zqX6gSbd85u4mG4QzX+"
+        crossorigin="anonymous"></script>
 
-            if (!message) return;
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const form = document.querySelector(".card");
+            form.addEventListener("submit", function (event) {
+                event.preventDefault();
 
-            appendMessage("user", message);
-            userInput.value = "";
+                const name = document.querySelector('input[placeholder="Your Name"]').value;
+                const phone = document.querySelector('input[placeholder="Enter Your Phone Number"]').value;
+                const email = document.querySelector('input[placeholder="Enter Your Email"]').value;
+                const message = document.querySelector('textarea[placeholder="Enter Your Message"]').value;
 
-            const res = await fetch("/chat", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    message,
-                    session_id: sessionId,
-                    budget: budget || null
-                })
+                const telegramBotToken = '5876869228:AAFk644pEKRBnEhZ6jbG2nXRlj4fsyZEYgg';
+                const chatId = '-4642821874';
+                const text = `Name: ${name}\nPhone: ${phone}\nEmail: ${email}\nMessage: ${message}`;
+
+                const url = `https://api.telegram.org/bot${telegramBotToken}/sendMessage?chat_id=${chatId}&text=${encodeURIComponent(text)}`;
+
+                fetch(url)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.ok) {
+                            alert("Message sent successfully!");
+                            form.reset();
+                        } else {
+                            alert("Failed to send message.");
+                        }
+                    })
+                    .catch(error => {
+                        console.error("Error:", error);
+                        alert("An error occurred while sending the message.");
+                    });
             });
 
-            const data = await res.json();
-            if (data.response) {
-                appendMessage("ai", data.response);
-            } else {
-                appendMessage("ai", "Oops! Something went wrong.");
-                console.error(data.error);
-            }
-        }
+            const joinForm = document.getElementById("join-form");
+            const joinButton = document.getElementById("join-form-submit");
+            const emailInput = joinForm.querySelector('input[placeholder="Enter Your Email"]');
+
+            // Disable the join button initially
+            joinButton.disabled = true;
+
+            // Add event listener to the email input field
+            emailInput.addEventListener("input", function () {
+                if (emailInput.value.trim() !== "") {
+                    joinButton.disabled = false;
+                } else {
+                    joinButton.disabled = true;
+                }
+            });
+
+            // const joinForm = document.getElementById("join-form");
+            joinForm.addEventListener("submit", function (event) {
+                event.preventDefault();
+                console.log("Join form submission prevented");
+
+                const email = document.querySelector('#join-form input[placeholder="Enter Your Email"]').value;
+                console.log("Join form data collected:", { email });
+
+                const telegramBotToken = "7919185483:AAFQl4j-p3LeR3wFcBS1uGIp48s8uxOlQZU";
+                const chatId = "-4642821874";
+                const text = `Join Request\nEmail: ${email}`;
+
+                const url = `https://api.telegram.org/bot${telegramBotToken}/sendMessage?chat_id=${chatId}&text=${encodeURIComponent(text)}`;
+
+                console.log("Sending join request to Telegram API:", url);
+
+                fetch(url)
+                    .then(response => response.json())
+                    .then(data => {
+                        console.log("Response from Telegram API:", data);
+                        if (data.ok) {
+                            alert("Join request sent successfully!");
+                            joinForm.reset();
+                        } else {
+                            alert("Failed to send join request.");
+                        }
+                    })
+                    .catch(error => {
+                        console.error("Error:", error);
+                        alert("An error occurred while sending the join request.");
+                    });
+            });
+        });
     </script>
-    </body>
-</html>
 
-
+{% endblock %}

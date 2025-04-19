@@ -5,9 +5,9 @@ from flask import Flask, render_template, request, jsonify
 from flask_cors import CORS
 from openai import OpenAI
 import os
-
-# from tenacity import retry
-from flask import render_template
+import jwt
+import bcrypt
+from functools import wraps
 
 app = Flask(__name__)
 CORS(app)
@@ -59,11 +59,91 @@ def calculate_list_total(session_id):
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
-    return render_template('index.html')
+    return render_template('index.html', title="PrestoQ")
+
+# @app.route('/auth', methods=['GET', 'POST'])
+# def auth():
 
 
-@app.route('/chat', methods=['POST'])
+# Mock database for users
+users_db = {}
+
+# JWT config
+JWT_SECRET = 'your-secret-key'
+JWT_ALGORITHM = 'HS256'
+
+def token_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        token = request.headers.get('Authorization')
+        if not token:
+            return jsonify({'message': 'Token is missing'}), 401
+        try:
+            data = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+            current_user = users_db.get(data['username'])
+        except:
+            return jsonify({'message': 'Token is invalid'}), 401
+        return f(current_user, *args, **kwargs)
+    return decorated
+
+@app.route('/auth/signup', methods=['GET', 'POST'])
+def signup():
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+        
+        if not username or not password:
+            return render_template('signup.html', error='Missing username or password')
+            
+        if username in users_db:
+            return render_template('signup.html', error='Username already exists')
+            
+        # Hash password
+        hashed = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
+        
+        # Store user
+        users_db[username] = {
+            'username': username,
+            'password': hashed
+        }
+        
+        return render_template('login.html', message='User created successfully')
+        
+    return render_template('signup.html')
+
+
+@app.route('/auth/login', methods=['POST']) 
+def login():
+    data = request.get_json()
+    username = data.get('username')
+    password = data.get('password')
+    
+    if not username or not password:
+        return jsonify({'message': 'Missing username or password'}), 400
+        
+    user = users_db.get(username)
+    if not user:
+        return jsonify({'message': 'User not found'}), 404
+        
+    if not bcrypt.checkpw(password.encode('utf-8'), user['password']):
+        return jsonify({'message': 'Invalid password'}), 401
+        
+    # Generate JWT token
+    token = jwt.encode({
+        'username': username,
+        'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=24)
+    }, JWT_SECRET, algorithm=JWT_ALGORITHM)
+    
+    return jsonify({
+        'message': 'Login successful',
+        'token': token
+    })    
+@app.route('/chat', methods=['GET', 'POST'])
 def chat():
+    return render_template('chat.html', title="PrestoQAI")
+
+@app.route('/chat-backend', methods=['POST'])
+def chat_backend():
     
     data = request.get_json()
     user_message = data.get("message", "")

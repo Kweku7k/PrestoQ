@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <title>{{title}}</title>
+    <!-- Required meta tags -->
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+    <!-- Bootstrap CSS v5.2.1 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="{{url_for('static', filename='css/style.css')}}">
+    <!-- add favicon -->
+    <link rel="icon" href="{{url_for('static', filename='img/b-logo.png')}}" type="image/x-icon" />
+  
+</head>
+
+<body>
+    <header>
+        <nav class="navbar navbar-expand-sm navbar-transparent bg-transparent">
+            <div class="container">
+
+                <div class="flex-row" style="display: flex;">
+                    <img src="{{url_for('static', filename='img/b-logo-full.png')}}" alt="PrestoQ Logo" style="max-width: 150px;">
+                </div>
+
+                </a>
+
+                {% if title == "PrestoQAI" %}
+                <a href="{{url_for('index')}}">
+                    <button class="pill-button" type="submit">
+                        Give Feedback
+                    </button>
+                </a>
+                {% else %}
+                <a href="{{url_for('chat')}}">
+                    <button class="pill-button" type="submit">
+                        Test Q!
+                    </button>
+                </a>
+                {% endif %}
+
+
+            </div>
+        </nav>
+    </header>
+    {% block body %}
+    {% endblock %}
+
+
+
+</body>
+
+</html>
