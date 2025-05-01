@@ -26,13 +26,9 @@ CORS(app)
 # Set your API key
 api_key = os.getenv("OPENAI_API_KEY")  # or hardcode it for now
 # db_uri = os.getenv("PG_DB_URL")  # or hardcode it for now
-<<<<<<< HEAD
-DATABASE_URI = os.getenv("PG_DB_URL")
-=======
 DATABASE_URI = os.getenv("DATABASE_URI") 
 
 
->>>>>>> 7c7ddbf (remove secret)
 client = OpenAI(
     api_key = os.getenv("OPENAI_API_KEY"),
 )
