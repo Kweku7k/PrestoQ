@@ -3,18 +3,36 @@ from datetime import datetime
 import re
 from flask import Flask, render_template, request, jsonify
 from flask_cors import CORS
+from flask_sqlalchemy import SQLAlchemy
 from openai import OpenAI
 import os
 import jwt
 import bcrypt
 from functools import wraps
+from flask_migrate import Migrate
+
+import requests
+
+from services import send_otp
+import services
 
 app = Flask(__name__)
+
+# Initialize Flask-Migrate
+
+# Initialize SQLAlchemy
 CORS(app)
 
 # Set your API key
 api_key = os.getenv("OPENAI_API_KEY")  # or hardcode it for now
+# db_uri = os.getenv("PG_DB_URL")  # or hardcode it for now
+<<<<<<< HEAD
+DATABASE_URI = os.getenv("PG_DB_URL")
+=======
+DATABASE_URI = os.getenv("DATABASE_URI") 
 
+
+>>>>>>> 7c7ddbf (remove secret)
 client = OpenAI(
     api_key = os.getenv("OPENAI_API_KEY"),
 )
@@ -28,6 +46,54 @@ user_reflections = {}  # session_id: list of user answers
 shopping_lists = defaultdict(list)  # session_id: [(item, estimated_cost)]
 
 
+app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URI
+db = SQLAlchemy()
+db.init_app(app)
+migrate = Migrate(app, db)
+
+
+class User(db.Model):
+    __tablename__ = 'users'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(80))
+    pin = db.Column(db.String(120))
+    phone_number = db.Column(db.String(15), unique=True)
+    created_at = db.Column(db.DateTime, default=datetime.now())
+    transactions = db.relationship('Transaction', backref='user', lazy=True)
+    shopping_lists = db.relationship('ShoppingList', backref='user', lazy=True)
+
+class Transaction(db.Model):
+    __tablename__ = 'transactions'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    description = db.Column(db.String(200), nullable=False)
+    amount = db.Column(db.Float, nullable=False)
+    transaction_type = db.Column(db.String(20), nullable=False)  # 'send' or 'receive'
+    recipient_phone = db.Column(db.String(15))
+    reference = db.Column(db.String(200))
+    created_at = db.Column(db.DateTime, default=datetime.now())
+
+class ShoppingList(db.Model):
+    __tablename__ = 'shopping_lists'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    name = db.Column(db.String(100), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.now())
+    items = db.relationship('ShoppingListItem', backref='shopping_list', lazy=True)
+
+class ShoppingListItem(db.Model):
+    __tablename__ = 'shopping_list_items'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    shopping_list_id = db.Column(db.Integer, db.ForeignKey('shopping_lists.id'), nullable=False)
+    item = db.Column(db.String(100), nullable=False)
+    estimated_cost = db.Column(db.Float)
+    purchased = db.Column(db.Boolean, default=False)
+    added_date = db.Column(db.DateTime, default=datetime.now())
+
 past_transactions = [
     ("Bought coffee", 3.50),
     ("Uber ride", 12.00),
@@ -40,7 +106,8 @@ def transaction_summary():
     return "\n".join([f"{desc} - Ghc{amount:.2f}" for desc, amount in past_transactions])
 
 def total_spent():
-    return sum(amount for _, amount in past_transactions)
+    return 0
+    # return sum(amount for _, amount in past_transactions)
 
 def add_to_shopping_list(session_id, item, estimated_cost=None):
     shopping_lists[session_id].append({
@@ -112,7 +179,7 @@ def signup():
     return render_template('signup.html')
 
 
-@app.route('/auth/login', methods=['POST']) 
+@app.route('/auth/login', methods=['POST'])
 def login():
     data = request.get_json()
     username = data.get('username')
@@ -148,29 +215,158 @@ def chat_backend():
     data = request.get_json()
     user_message = data.get("message", "")
     session_id = data.get("session_id", "")
-    budget = data.get("budget", "")
+    budget = data.get("budget", 0)
     user_reflections[session_id] = []
     
     if not session_id or not user_message:
         return jsonify({"error": "Both 'session_id' and 'message' are required."}), 400
+    
+    
+    # check to see if a user is logged in, if not request phone number and send an otp for confirmation of user
+    if session_budgets.get('user', None) is None:
+        
+        session_budgets['user'] = {
+            "status":"PENDING_PHONE_NUMBER",
+            "pending":True,
+            "otp":1234
+        }
+        
+        # send otp
+        return jsonify({
+            "response": f"Hi, please give me your phone number so I log you in"
+        })
+        
+        
+    if session_budgets['user']['status'] == "PENDING_PHONE_NUMBER":
+        # check if the phone number is correct
+        # lets verify if this is an actual phone number
+        user_message = user_message.replace(" ", "").replace("-", "")
+        if not re.match(r'^\+\d{9,15}$', user_message):   
+            
+        #  check to see if there is a plus starting the phone number if not tell the user to start with a +
+            if not user_message.startswith("+"):
+                return jsonify({
+                    "response": f"❌ Phone Number should be in format: +233"
+                })
+
+            return jsonify({
+                "response": f"❌ Invalid phone number, please try again"
+            })
+        
+        user = User.query.filter_by(phone_number=user_message).first()
+        
+        if user is None:
+            
+            # check if user already exists
+            user = User.query.filter_by(username=user_message).first()
+            
+            new_user = User(phone_number=user_message, username="USER", pin="0000")
+            db.session.add(new_user)
+            db.session.commit()
+            
+            session_budgets['user']['status'] = "PENDING_NAME"
+            session_budgets['user']['phone_number'] = user_message
+            return jsonify({
+                "response": f"Hi! I am Mama Lizy, what is your name?"
+            })
+        
+        session_budgets['user']['status'] = "PENDING_OTP"
+        send_otp(user.phone_number)
+        return jsonify({
+                "response": f"Hi {user.username}, I just shot you an otp, please verify!"
+            })
+        
+    if session_budgets['user']['status'] == "PENDING_NAME":
+        # check if the phone number is correct
+        user = User.query.filter_by(phone_number=session_budgets['user']['phone_number']).first()
+
+        if user is not None:
+            user.username = user_message
+            db.session.commit()
+
+        session_budgets['user']['status'] = "LOGGED_IN"
+        session_budgets['user']['pending'] = False
+        return jsonify({
+            "response": f"✅ You're logged in"
+        })
+        
+    if session_budgets['user']['status'] == "PENDING_OTP":
+        # check if the otp is correct
+        if int(user_message) == session_budgets['user']['otp']:
+            session_budgets['user']['status'] = "LOGGED_IN"
+            session_budgets['user']['pending'] = False
+            return jsonify({
+                "response": f"Heyyyy"
+            })
+        else:
+            return jsonify({
+                "response": f"❌ Invalid OTP, please try again"
+            })
 
       # Set budget if provided and not already set
-    if budget is not None:
-        session_budgets[session_id] = float(budget)
-        
-    current_budget = session_budgets.get(session_id)
-    total_spent_amount = total_spent()
-    budget_context = (
-        f"You have a budget of Ghc{current_budget:.2f}."
-        if current_budget is not None
-        else "No budget has been set."
-    )
+      
+    if session_budgets['user']['status'] == "PENDING_PAYMENT_CONFIRMATION":
+        if "yes" in user_message.lower() and "pending_transfer" in session_budgets.get(session_id, {}):
+            tx = session_budgets[session_id]["pending_transfer"]
+
+            response = services.trigger_payment()
+
+            if response:
+                session_budgets[session_id].pop("pending_transfer", None)
+                return jsonify({"response": f"✅ Sent GHC {tx['amount']:.2f} to {tx['phone_number']} for \"{tx['reference']}\"."})
+            else:
+                return jsonify({"response": "❌ Something went wrong while trying to send the money. Please try again later."})
     
-    # THE CODE BELOW IS REDUNDANT
+   
+    send_money_pattern = re.search(r'send\s+(?:ghc)?\s?(\d+(?:\.\d{1,2})?)\s+to\s+(\d{10})\s*(?:for\s+(.*))?', user_message.lower())
+    if send_money_pattern:
+        amount = float(send_money_pattern.group(1))
+        phone_number = send_money_pattern.group(2)
+        reference = send_money_pattern.group(3) or "No reference"
+
+        # Save this data temporarily in session context
+        session_budgets[session_id] = {
+            "pending_transfer": {
+                "phone_number": phone_number,
+                "amount": amount,
+                "reference": reference
+            }
+        }
+        
+        # identify user by phone number
+        # name = "Nana Kweku Adumatta" #TODO: Update this guy!
+        
+        name = services.momolookup(phone_number)
+        session_budgets['user']['status'] = "PENDING_PAYMENT_CONFIRMATION"
+        
+        
+        return jsonify({
+            "response": f"You're about to send GHC {amount:.2f} to {name} for \"{reference}\". Enter your pin so I proceed?"
+        })
+        
+     
+    # if budget is not None:
+    #     session_budgets[session_id] = float(budget)
+        
+    # current_budget = session_budgets.get(session_id)['budget']
+    total_spent_amount = total_spent()
+    # budget_context = (
+    #     f"You have a budget of Ghc{current_budget:.2f}."
+    #     if current_budget is not None
+    #     else "No budget has been set."
+    # )
+    
+    # # THE CODE BELOW IS REDUNDANT
+    # budget_context = (
+    #     f"You have a budget of Ghc{current_budget:.2f} and have already spent Ghc{total_spent_amount:.2f}."
+    #     if current_budget is not None
+    #     else "No budget has been set."
+    # )
+    current_budget = None
     budget_context = (
-        f"You have a budget of Ghc{current_budget:.2f} and have already spent Ghc{total_spent_amount:.2f}."
-        if current_budget is not None
-        else "No budget has been set."
+    f"You have a budget of Ghc{current_budget:.2f} and have already spent Ghc{total_spent_amount:.2f}."
+    if current_budget is not None
+    else "No budget has been set."
     )
 
     # If new session, start with system + transaction context
@@ -184,23 +380,10 @@ def chat_backend():
                 Respond in a warm, firm, and very dramatic tone, often adding life lessons or subtle guilt to drive your point.
                 Keep responses short, straight to the point, and expressive.
                 If the user tries to spend above their budget, respond with a concerned or exasperated tone (e.g. “Ei!”, “Ah ah!”, "Herh") do not constrain to only these responses.
-                If it's within budget, give mild approval but still add a lesson or warning.
+                Ask the average amount. If it's within budget, give approval by replying "Okay, who am I sending the money to?".
                 Use common expressions and Nigerian/Ghanaian slang where appropriate, but keep it clear and friendly.
-                Ask one clarifying question at a time before giving advice.
-                You can help manage a shopping list. Commands available:
-                - To add: "Add [item] to my shopping list"
-                - To view: "Show my shopping list"
-                - To clear: "Clear my shopping list"
-                Current shopping list status:{shopping_list_context}
                 """
-    #         "content": (
-    #     "You're a smart AI financial assistant that talks like an african parent "
-    #     "When users ask about making a purchase, don't give your opinion right away. "
-    #     # "Instead, ask 2-3 helpful questions that make them reflect on the purchase. "
-    #     "Ask the user what they think about the purchase themselves. "
-    #     "Then, after their answers, provide thoughtful advice based on their budget and past spending."
-    #     "Before you provide advice request an average amount of the product"
-    # )
+            
         })
         
         chat_sessions[session_id].append({
@@ -213,50 +396,6 @@ def chat_backend():
     match = re.search(r'\$(\d+(?:\.\d{2})?)', user_message)
     if match:
         purchase_amount = float(match.group(1))
-
-    # # Handle cases where no purchase amount is mentioned
-    # if purchase_amount is None:
-    #     return jsonify({
-    #         "response": "I didn't catch the amount you're considering for this purchase. Could you let me know how much it would cost?"
-    #     })
-
-    # Check if the purchase exceeds the budget by more than 20%
-    # if purchase_amount and current_budget is not None and purchase_amount > current_budget * 1.2:
-    #     return jsonify({
-    #         "response": f"Ei! This purchase of ${purchase_amount} is way over your budget of ${current_budget:.2f}. "
-    #                     "Are you sure about this? You might want to reconsider."
-    #     })
-        
-    # stage = question_stages.get(session_id, 0)
-
-    # # Save user reply from previous question
-    # if stage > 0 and stage <= 3:
-    #     user_reflections[session_id].append(user_message)
-
-    # # Add user message to conversation
-    # chat_sessions[session_id].append({"role": "user", "content": user_message})
-
-    # # Ask next question or provide final advice
-    # questions = [
-    #     "Okay, lets think about it🧠\n\nWould you say this is a need or a want?",
-    #     "Do you already own something similar that works fine?",
-    #     "Are there any upcoming expenses that might affect this decision?"
-    # ]
-
-    # if stage < 3:
-    #     next_question = questions[stage]
-    #     question_stages[session_id] += 1
-    #     return jsonify({"response": next_question})
-    # else:
-    #     # All questions answered, provide advice
-    #     reflections = "\n".join([
-    #         f"Q{i+1}: {questions[i]}\nA: {ans}"
-    #         for i, ans in enumerate(user_reflections[session_id])
-    #     ])
-    #     chat_sessions[session_id].append({
-    #         "role": "user",
-    #         "content": f"Here are my reflections:\n{reflections}\n\n{budget_context}"
-    #     })
 
 
     # =========== REMINDERS ============
@@ -315,8 +454,12 @@ def chat_backend():
     temperature=0.7
     )
 
-    print(completion.choices[0].message.content)
-    return jsonify({"response": completion.choices[0].message.content})
+    try:
+        print(completion.choices[0].message.content)
+        return jsonify({"response": completion.choices[0].message.content}, theme="DARK")
+    except Exception as e:
+        print(f"Error generating response: {str(e)}")
+        return jsonify({"response": "I'm sorry, I'm having trouble responding right now. Please try again later."}, theme="DARK"), 500
 
 if __name__ == "__main__":
     app.run(debug=True, host='0.0.0.0')

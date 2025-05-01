@@ -1,18 +1,27 @@
 {% extends "layout.html" %}
 
+{% block head %}
+<style>
+    body{
+        background-color: black;
+    }
+</style>
+{% endblock %}
+
 {% block body %}
         <!-- <main> -->
             <div class="container">
             <div class="row" style="justify-content: space-around;">
                     <div class="col">
-                        <div class="chat-container">
+                        <div class="chat-container" style="color: white;">
                             <h1>💸 Presto Q AI</h1>
+                            <h6 id="ui-frontend-session-id"></h6>
                             <div id="chat-box"></div>
                             
-                            <input class="form-field" type="number" id="budget-input" placeholder="Set your budget (optional)">
-                            <input class="form-field" type="text" id="user-input" placeholder="What are we buying!" autofocus>
+                            <input class="form-field inputformfield" type="number" id="budget-input" placeholder="Set your budget (optional)">
+                            <input class="form-field inputformfield" type="text" id="user-input" placeholder="What are we buying!" autofocus>
                             <br/>
-                            <button class="pill-button full"  onclick="sendMessage()">Send</button>
+                            <button class="pill-button full" style="background-color: white;  color: black;"  onclick="sendMessage()">Send</button>
                         </div>
                     </div>
             </div>
@@ -42,11 +51,13 @@
         const userInput = document.getElementById("user-input");
         const budgetInput = document.getElementById("budget-input");
 
-        let sessionId = sessionStorage.getItem("sessionId") || crypto.randomUUID();
+        let sessionId = crypto.randomUUID();
         sessionStorage.setItem("sessionId", sessionId);
+        document.getElementById("ui-frontend-session-id").innerText = sessionId
 
         function appendMessage(role, text) {
             const message = document.createElement("div");
+            message.className = role === "user" ? "user-message" : "ai-message";
             message.textContent = `${role === "user" ? "🧍 You" : "🤖 AI"}: ${text}`;
             chatBox.appendChild(message);
             chatBox.scrollTop = chatBox.scrollHeight;
@@ -61,23 +72,41 @@
             appendMessage("user", message);
             userInput.value = "";
 
-            const res = await fetch("/chat-backend", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    message,
-                    session_id: sessionId,
-                    budget: budget || null
-                })
-            });
+            try {
+                const res = await fetch("/chat-backend", {
+                    method: "POST", 
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        message,
+                        session_id: sessionId,
+                        budget: budget || null
+                    })
+                });
+                console.log("MESSAGE SENT SUCCESSFULLY")
+                const data = await res.json();
 
-            const data = await res.json();
-            if (data.response) {
-                appendMessage("ai", data.response);
-            } else {
-                appendMessage("ai", "Oops! Something went wrong.");
-                console.error(data.error);
+                if (data.response) {
+                    appendMessage("ai", data.response);
+                } else {
+                    appendMessage("ai", "💩");
+                    console.error(data.error);
+                }
+            
+            } catch (error) {
+                console.error("Error sending message:", error);
+                appendMessage("ai", "💩");
+                return;
             }
+
+
+           
         }
+
+        userInput.addEventListener("keypress", function(event) {
+            if (event.key === "Enter") {
+                event.preventDefault();
+                sendMessage();
+            }
+        });
     </script>
 {% endblock %}

@@ -17,10 +17,42 @@
     <!-- add favicon -->
     <link rel="icon" href="{{url_for('static', filename='img/b-logo.png')}}" type="image/x-icon" />
   
+
+    {% block head %}
+
+    {% endblock %}
 </head>
 
 <body>
     <header>
+        {% if theme == DARK %}
+        <nav class="navbar navbar-expand-sm navbar-transparent bg-transparent">
+            <div class="container">
+
+                <div class="flex-row" style="display: flex;">
+                    <img src="{{url_for('static', filename='img/w-logo-full.png')}}" alt="PrestoQ Logo" style="max-width: 150px;">
+                </div>
+
+                </a>
+
+                {% if title == "PrestoQAI" %}
+                <a href="{{url_for('index')}}">
+                    <button class="pill-button" style="background-color: white; color: black;" type="submit">
+                        Give Feedback
+                    </button>
+                </a>
+                {% else %}
+                <a href="{{url_for('chat')}}">
+                    <button class="pill-button" type="submit">
+                        Test Q!
+                    </button>
+                </a>
+                {% endif %}
+
+
+            </div>
+        </nav>
+        {% else %}
         <nav class="navbar navbar-expand-sm navbar-transparent bg-transparent">
             <div class="container">
 
@@ -47,6 +79,7 @@
 
             </div>
         </nav>
+        {% endif %}
     </header>
     {% block body %}
     {% endblock %}
