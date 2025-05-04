@@ -55,6 +55,10 @@
         sessionStorage.setItem("sessionId", sessionId);
         document.getElementById("ui-frontend-session-id").innerText = sessionId
 
+        sendErrorMessage(message){
+
+        }
+
         function appendMessage(role, text) {
             const message = document.createElement("div");
             message.className = role === "user" ? "user-message" : "ai-message";
@@ -95,6 +99,7 @@
             } catch (error) {
                 console.error("Error sending message:", error);
                 appendMessage("ai", "💩");
+                sendErrorMessage()
                 return;
             }
 

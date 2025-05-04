@@ -26,12 +26,13 @@ CORS(app)
 # Set your API key
 api_key = os.getenv("OPENAI_API_KEY")  # or hardcode it for now
 # db_uri = os.getenv("PG_DB_URL")  # or hardcode it for now
-DATABASE_URI = os.getenv("DATABASE_URI") 
+DATABASE_URI = os.getenv("Q_DATABASE_URI") 
 
 
 client = OpenAI(
     api_key = os.getenv("OPENAI_API_KEY"),
 )
+
 
 chat_sessions = defaultdict(list)
 session_budgets = {}
@@ -201,6 +202,7 @@ def login():
         'message': 'Login successful',
         'token': token
     })    
+
 @app.route('/chat', methods=['GET', 'POST'])
 def chat():
     return render_template('chat.html', title="PrestoQAI")
@@ -232,6 +234,9 @@ def chat_backend():
             "response": f"Hi, please give me your phone number so I log you in"
         })
         
+    user_status = session_budgets.get('user', {}).get('status', None) 
+    print("user_status")
+    print("USER STATUS: " +user_status)
         
     if session_budgets['user']['status'] == "PENDING_PHONE_NUMBER":
         # check if the phone number is correct
@@ -292,7 +297,7 @@ def chat_backend():
             session_budgets['user']['status'] = "LOGGED_IN"
             session_budgets['user']['pending'] = False
             return jsonify({
-                "response": f"Heyyyy"
+                "response": f"Heyyyy" #LETS AUTOMATE THIS
             })
         else:
             return jsonify({
