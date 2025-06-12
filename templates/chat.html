@@ -14,12 +14,25 @@
             <div class="row" style="justify-content: space-around;">
                     <div class="col">
                         <div class="chat-container" style="color: white;">
-                            <h1>💸 Presto Q AI</h1>
+                            <div style="display: flex; justify-content: space-between;">
+                                <div>
+                                <h1>💸 Presto Q AI</h1>
                             <h6 id="ui-frontend-session-id"></h6>
+
+                                </div>
+                                <div id="user-info" style="display: none; justify-content: space-between;">
+                                    <button class="pill-button small" style="background-color: #ff4d4d; color: white;" onclick="logout()">Logout</button></p>
+                                </div>
+                            </div>
+                            <h6 id="ui-frontend-session-id"></h6>
+                            <p>Logged in as: <span id="logged-user-name">Guest</span> 
+                            <div id="user-info" style="display: none;">
+                                <button class="pill-button small" style="background-color: #ff4d4d; color: white;" onclick="logout()">Logout</button></p>
+                            </div>
                             <div id="chat-box"></div>
                             
                             <input class="form-field inputformfield" type="number" id="budget-input" placeholder="Set your budget (optional)">
-                            <input class="form-field inputformfield" type="text" id="user-input" placeholder="What are we buying!" autofocus>
+                            <input class="form-field inputformfield" type="text" id="user-input" placeholder="What are we buying!" value="Send 1 to 0545977791 for testing" autofocus>
                             <br/>
                             <button class="pill-button full" style="background-color: white;  color: black;"  onclick="sendMessage()">Send</button>
                         </div>
@@ -51,9 +64,23 @@
         const userInput = document.getElementById("user-input");
         const budgetInput = document.getElementById("budget-input");
 
-        let sessionId = crypto.randomUUID();
+        let sessionId = sessionStorage.getItem("sessionId") || crypto.randomUUID();
         sessionStorage.setItem("sessionId", sessionId);
-        document.getElementById("ui-frontend-session-id").innerText = sessionId
+        document.getElementById("ui-frontend-session-id").innerText = sessionId;
+
+        // Check for stored auth token
+        let authToken = localStorage.getItem("authToken");
+        let userName = localStorage.getItem("userName");
+        
+        // Update UI based on authentication status
+        if (userName) {
+            document.getElementById("user-info").style.display = "block";
+            document.getElementById("logged-user-name").textContent = userName;
+            appendMessage("ai", `Welcome back, ${userName}!`);
+        } else {
+            document.getElementById("user-info").style.display = "none";
+            appendMessage("ai", "Hi! Please provide your phone number to get started.");
+        }
 
         function sendErrorMessage(message) {
             return "Done";
@@ -77,20 +104,53 @@
             userInput.value = "";
 
             try {
+                // Prepare request headers and body
+                const headers = { "Content-Type": "application/json" };
+                const requestBody = {
+                    message,
+                    session_id: sessionId,
+                    budget: budget || null
+                };
+                
+                // Add token if available
+                if (authToken) {
+                    requestBody.token = authToken;
+                }
+
                 const res = await fetch("/chat-backend", {
                     method: "POST", 
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        message,
-                        session_id: sessionId,
-                        budget: budget || null
-                    })
+                    headers: headers,
+                    body: JSON.stringify(requestBody)
                 });
-                console.log("MESSAGE SENT SUCCESSFULLY")
+                
+                console.log("MESSAGE SENT SUCCESSFULLY");
                 const data = await res.json();
 
                 if (data.response) {
                     appendMessage("ai", data.response);
+                    
+                    // Check if response contains a token
+                    if (data.token) {
+                        // Store the token
+                        localStorage.setItem("authToken", data.token);
+                        authToken = data.token;
+                        
+                        // Try to extract username from token (if possible)
+                        try {
+                            const tokenParts = authToken.split('.');
+                            if (tokenParts.length === 3) {
+                                const payload = JSON.parse(atob(tokenParts[1]));
+                                if (payload.username) {
+                                    localStorage.setItem("userName", payload.username);
+                                    // Update UI to show logged in user
+                                    document.getElementById("user-info").style.display = "block";
+                                    document.getElementById("logged-user-name").textContent = payload.username;
+                                }
+                            }
+                        } catch (e) {
+                            console.error("Error parsing token:", e);
+                        }
+                    }
                 } else {
                     appendMessage("ai", "💩");
                     console.error(data.error);
@@ -99,12 +159,23 @@
             } catch (error) {
                 console.error("Error sending message:", error);
                 appendMessage("ai", "💩");
-                sendErrorMessage()
+                sendErrorMessage();
                 return;
             }
+        }
 
-
-           
+        // Add logout function
+        function logout() {
+            localStorage.removeItem("authToken");
+            localStorage.removeItem("userName");
+            authToken = null;
+            document.getElementById("user-info").style.display = "none";
+            appendMessage("ai", "You've been logged out. Please provide your phone number to log in again.");
+            
+            // Reset session to force re-authentication
+            sessionId = crypto.randomUUID();
+            sessionStorage.setItem("sessionId", sessionId);
+            document.getElementById("ui-frontend-session-id").innerText = sessionId;
         }
 
         userInput.addEventListener("keypress", function(event) {

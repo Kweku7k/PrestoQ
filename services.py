@@ -54,3 +54,25 @@ def trigger_payment():
     response = requests.post(url, json=payload)
     print(response.json())
     return response.json()
+
+def create_payout(pending_transfer, user):
+    print("""""user""""")
+    print(user)
+    body = {
+        "username": user.username,
+        "amount": pending_transfer['amount'],
+        "name": "John Doe",
+        "account": user.phone_number,
+        "network": "MTN",
+        "reference": pending_transfer['reference'],
+        "api_key":"fb5d5ed44582a40e1befa33f848852c95eece4a87f81040da6abbe7adc06b071"
+    }
+    url = "https://prestoghana.com/api/payout"
+    headers = {"x-api-key": "fb5d5ed44582a40e1befa33f848852c95eece4a87f81040da6abbe7adc06b071"}
+    response = requests.post(url, json=body, headers=headers)
+    return response.json()
+
+def confirm_payout(payoutId):
+    url = "https://prestoghana.com/firepayout/"+payoutId
+    response = requests.post(url)
+    return response.json()
