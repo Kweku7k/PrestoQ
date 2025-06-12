@@ -227,6 +227,17 @@ def chat_backend():
     # Check for JWT token in the request data or headers
     if not token:
         token = request.headers.get('Authorization')
+        # if token == "":
+        #     session_budgets[session_id] = {
+        #     "status":"PENDING_PHONE_NUMBER",
+        #     "pending":True,
+        #     "otp":1234
+        # }
+        
+        # # send otp
+        # return jsonify({
+        #     "response": f"Hi, please give me your phone number so I log you in"
+        # })
         
     if token:
         try:
@@ -261,6 +272,9 @@ def chat_backend():
             # Token is invalid, continue with normal flow
             pass
     
+    # else:
+        
+    
     # check to see if a user is logged in, if not request phone number and send an otp for confirmation of user
     if session_budgets.get(session_id, None) is None:
         
@@ -281,111 +295,111 @@ def chat_backend():
     print("SESSION BUDGETS: ")
     pprint.pprint(session_budgets)
         
-    # if session_budgets[session_id]['status'] == "PENDING_PHONE_NUMBER":
-    #     # check if the phone number is correct
-    #     # lets verify if this is an actual phone number
-    #     user_message = user_message.replace(" ", "").replace("-", "")
-    #     if not re.match(r'^\+\d{9,15}$', user_message):   
+    if session_budgets[session_id]['status'] == "PENDING_PHONE_NUMBER":
+        # check if the phone number is correct
+        # lets verify if this is an actual phone number
+        user_message = user_message.replace(" ", "").replace("-", "")
+        if not re.match(r'^\+\d{9,15}$', user_message):   
             
-    #     #  check to see if there is a plus starting the phone number if not tell the user to start with a +
-    #         if not user_message.startswith("+"):
-    #             return jsonify({
-    #                 "response": f"❌ Phone Number should be in format: +233"
-    #             })
+        #  check to see if there is a plus starting the phone number if not tell the user to start with a +
+            if not user_message.startswith("+"):
+                return jsonify({
+                    "response": f"❌ Phone Number should be in format: +233"
+                })
 
-    #         return jsonify({
-    #             "response": f"❌ Invalid phone number, please try again"
-    #         })
+            return jsonify({
+                "response": f"❌ Invalid phone number, please try again"
+            })
         
-    #     user = User.query.filter_by(phone_number=user_message).first()
+        user = User.query.filter_by(phone_number=user_message).first()
         
-    #     if user is None:
+        if user is None:
             
-    #         # check if user already exists
-    #         user = User.query.filter_by(username=user_message).first()
+            # check if user already exists
+            user = User.query.filter_by(username=user_message).first()
             
-    #         new_user = User(phone_number=user_message, username="USER", pin="0000")
-    #         db.session.add(new_user)
-    #         db.session.commit()
+            new_user = User(phone_number=user_message, username="USER", pin="0000")
+            db.session.add(new_user)
+            db.session.commit()
             
-    #         session_budgets[session_id]['status'] = "PENDING_NAME"
-    #         session_budgets[session_id]['phone_number'] = user_message
-    #         return jsonify({
-    #             "response": f"Hi! I am Mama Lizy, what is your name?"
-    #         })
-    #     session_budgets[session_id]['user'] = user
+            session_budgets[session_id]['status'] = "PENDING_NAME"
+            session_budgets[session_id]['phone_number'] = user_message
+            return jsonify({
+                "response": f"Hi! I am Mama Lizy, what is your name?"
+            })
+        session_budgets[session_id]['user'] = user
         
-    #     session_budgets[session_id]['status'] = "PENDING_OTP"
-    #     send_otp(user.phone_number)
-    #     return jsonify({
-    #             "response": f"Hi {user.username}, I just shot you an otp, please verify!"
-    #         })
+        session_budgets[session_id]['status'] = "PENDING_OTP"
+        send_otp(user.phone_number)
+        return jsonify({
+                "response": f"Hi {user.username}, I just shot you an otp, please verify!"
+            })
         
-    # if session_budgets[session_id]['status'] == "PENDING_NAME":
-    #     # check if the phone number is correct
-    #     user = User.query.filter_by(phone_number=session_budgets[session_id]['phone_number']).first()
+    if session_budgets[session_id]['status'] == "PENDING_NAME":
+        # check if the phone number is correct
+        user = User.query.filter_by(phone_number=session_budgets[session_id]['phone_number']).first()
 
-    #     if user is not None:
-    #         user.username = user_message
-    #         db.session.commit()
+        if user is not None:
+            user.username = user_message
+            db.session.commit()
             
-    #     # Generate JWT token for persistence
-    #     token = jwt.encode({
-    #         'username': user_message,
-    #         'phone_number': session_budgets[session_id]['phone_number'],
-    #         'exp': datetime.utcnow() + datetime.timedelta(days=30)
-    #     }, JWT_SECRET, algorithm=JWT_ALGORITHM)
+        # Generate JWT token for persistence
+        token = jwt.encode({
+            'username': user_message,
+            'phone_number': session_budgets[session_id]['phone_number'],
+            'exp': datetime.utcnow() + datetime.timedelta(days=30)
+        }, JWT_SECRET, algorithm=JWT_ALGORITHM)
 
-    #     session_budgets[session_id]['status'] = "LOGGED_IN"
-    #     session_budgets[session_id]['pending'] = False
-    #     session_budgets[session_id]['user'] = user
+        session_budgets[session_id]['status'] = "LOGGED_IN"
+        session_budgets[session_id]['pending'] = False
+        session_budgets[session_id]['user'] = user
         
-    #     return jsonify({
-    #         "response": f"✅ You're logged in",
-    #         "token": token
-    #     })
+        return jsonify({
+            "response": f"✅ You're logged in",
+            "token": token
+        })
         
-    # if session_budgets[session_id]['status'] == "PENDING_OTP":
-    #     # check if the otp is correct
-    #     if int(user_message) == session_budgets[session_id]['otp']:
-    #         user = session_budgets[session_id]['user']
+    if session_budgets[session_id]['status'] == "PENDING_OTP":
+        # check if the otp is correct
+        if int(user_message) == session_budgets[session_id]['otp']:
+            user = session_budgets[session_id]['user']
             
-    #         # Generate JWT token for persistence
-    #         token = jwt.encode({
-    #             'username': user.username,
-    #             'phone_number': user.phone_number,
-    #             'exp': datetime.now() + timedelta(days=30)
-    #         }, JWT_SECRET, algorithm=JWT_ALGORITHM)
+            # Generate JWT token for persistence
+            token = jwt.encode({
+                'username': user.username,
+                'phone_number': user.phone_number,
+                'exp': datetime.now() + timedelta(days=30)
+            }, JWT_SECRET, algorithm=JWT_ALGORITHM)
             
-    #         session_budgets[session_id]['status'] = "LOGGED_IN"
-    #         session_budgets[session_id]['pending'] = False
+            session_budgets[session_id]['status'] = "LOGGED_IN"
+            session_budgets[session_id]['pending'] = False
             
-    #         return jsonify({
-    #             "response": f"Heyyyy {user.username}, welcome back!",
-    #             "token": token
-    #         })
-    #     else:
-    #         return jsonify({
-    #             "response": f"❌ Invalid OTP, please try again"
-    #         })
+            return jsonify({
+                "response": f"Heyyyy {user.username}, welcome back!",
+                "token": token
+            })
+        else:
+            return jsonify({
+                "response": f"❌ Invalid OTP, please try again"
+            })
 
-    #   # Set budget if provided and not already set
+      # Set budget if provided and not already set
       
-    # if session_budgets[session_id]['status'] == "PENDING_PAYMENT_CONFIRMATION":
-    #     if "yes" in user_message.lower() and "pending_transfer" in session_budgets.get(session_id, {}):
-    #         print("USER ENTERED YES")
-    #         tx = session_budgets[session_id]["pending_transfer"]
+    if session_budgets[session_id]['status'] == "PENDING_PAYMENT_CONFIRMATION":
+        if "yes" in user_message.lower() and "pending_transfer" in session_budgets.get(session_id, {}):
+            print("USER ENTERED YES")
+            tx = session_budgets[session_id]["pending_transfer"]
 
 
-    #         payoutId = session_budgets[session_id]['pending_payout']['id']
-    #         response = services.confirm_payout(payoutId) #TODO: MAKE THIS PAYOUT CONFIRMATION
-    #         # response = services.trigger_payment() #TODO: MAKE THIS PAYOUT CONFIRMATION
+            payoutId = session_budgets[session_id]['pending_payout']['id']
+            response = services.confirm_payout(payoutId) #TODO: MAKE THIS PAYOUT CONFIRMATION
+            # response = services.trigger_payment() #TODO: MAKE THIS PAYOUT CONFIRMATION
 
-    #         if response:
-    #             session_budgets[session_id].pop("pending_transfer", None)
-    #             return jsonify({"response": f"✅ Sent GHC {tx['amount']:.2f} to {tx['phone_number']} for \"{tx['reference']}\"."})
-    #         else:
-    #             return jsonify({"response": "❌ Something went wrong while trying to send the money. Please try again later."})
+            if response:
+                session_budgets[session_id].pop("pending_transfer", None)
+                return jsonify({"response": f"✅ Sent GHC {tx['amount']:.2f} to {tx['phone_number']} for \"{tx['reference']}\"."})
+            else:
+                return jsonify({"response": "❌ Something went wrong while trying to send the money. Please try again later."})
     
    
     #SEND MONEY PATTERN!
@@ -668,9 +682,9 @@ def chat_backend():
             print(f"Error extracting tool_calls: {e}")
             return None
 
-    tool_calls = extract_tool_calls(response_message)
+    # tool_calls = extract_tool_calls(response_message)
 
-    print(tool_calls)
+    # print(tool_calls)
 
     try:
         print("Processing response message...")
@@ -682,7 +696,7 @@ def chat_backend():
         # Check if the model wants to call a function
         # if hasattr(response_message, 'tool_calls') and response_message.tool_calls:
         # if tool_calls:
-        if (hasattr(response_message, 'tool_calls') and response_message.tool_calls) or response_message.get('tool_calls'):
+        if (hasattr(response_message, 'tool_calls') and response_message.tool_calls):
             print(f"Found tool calls: {len(response_message.tool_calls)}")
             # Process each function call
             for tool_call in response_message.tool_calls:
