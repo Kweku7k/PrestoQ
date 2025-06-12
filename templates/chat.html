@@ -76,21 +76,70 @@
         if (userName) {
             document.getElementById("user-info").style.display = "block";
             document.getElementById("logged-user-name").textContent = userName;
-            appendMessage("ai", `Welcome back, ${userName}!`);
+            appendMessage("ai", `Welcome back, ${userName}!`, "Authenticated");
         } else {
             document.getElementById("user-info").style.display = "none";
-            appendMessage("ai", "Hi! Please provide your phone number to get started.");
+            appendMessage("ai", "Hi! Please provide your phone number to get started.", "Not authenticated");
         }
 
         function sendErrorMessage(message) {
             return "Done";
         }
         
-        function appendMessage(role, text) {
+        // function appendMessage(role, text, status = null) {
+        //     const message = document.createElement("div");
+        //     message.className = role === "user" ? "user-message" : "ai-message";
+        //     message.textContent = `${role === "user" ? "🧍 You" : "🤖 AI"}: ${text}`;
+            
+        //     if (role === "ai" && status) {
+        //         const statusElement = document.createElement("div");
+        //         statusElement.className = "status-text";
+        //         statusElement.textContent = status;
+        //         statusElement.style.fontSize = "0.8em";
+        //         statusElement.style.color = "#888";
+        //         statusElement.style.marginTop = "2px";
+        //         statusElement.style.marginLeft = "25px";
+                
+        //         const messageContainer = document.createElement("div");
+        //         messageContainer.appendChild(message);
+        //         messageContainer.appendChild(statusElement);
+        //         chatBox.appendChild(messageContainer);
+        //     } else {
+        //         chatBox.appendChild(message);
+        //     }
+            
+        //     chatBox.scrollTop = chatBox.scrollHeight;
+        // }
+
+        function appendMessage(role, text, status = null) {
             const message = document.createElement("div");
             message.className = role === "user" ? "user-message" : "ai-message";
-            message.textContent = `${role === "user" ? "🧍 You" : "🤖 AI"}: ${text}`;
-            chatBox.appendChild(message);
+            
+            // Mask 4-digit PINs with asterisks if it's a user message
+            let displayText = text;
+            if (role === "user" && /^\d{4}$/.test(text.trim())) {
+                displayText = "****";
+            }
+            
+            message.textContent = `${role === "user" ? "🧍 You" : "🤖 AI"}: ${displayText}`;
+            
+            if (role === "ai" && status) {
+                const statusElement = document.createElement("div");
+                statusElement.className = "status-text";
+                statusElement.textContent = status;
+                statusElement.style.fontSize = "0.8em";
+                statusElement.style.color = "#888";
+                statusElement.style.marginTop = "2px";
+                statusElement.style.marginLeft = "25px";
+                
+                const messageContainer = document.createElement("div");
+                messageContainer.appendChild(message);
+                messageContainer.appendChild(statusElement);
+                chatBox.appendChild(messageContainer);
+            } else {
+                chatBox.appendChild(message);
+            }
+            
             chatBox.scrollTop = chatBox.scrollHeight;
         }
 
@@ -127,7 +176,9 @@
                 const data = await res.json();
 
                 if (data.response) {
-                    appendMessage("ai", data.response);
+                    // Get status from response if available
+                    const status = data.status || null;
+                    appendMessage("ai", data.response, status);
                     
                     // Check if response contains a token
                     if (data.token) {
@@ -152,13 +203,13 @@
                         }
                     }
                 } else {
-                    appendMessage("ai", "💩");
+                    appendMessage("ai", "💩", "Error occurred");
                     console.error(data.error);
                 }
             
             } catch (error) {
                 console.error("Error sending message:", error);
-                appendMessage("ai", "💩");
+                appendMessage("ai", "💩", "Network error");
                 sendErrorMessage();
                 return;
             }
@@ -170,7 +221,7 @@
             localStorage.removeItem("userName");
             authToken = null;
             document.getElementById("user-info").style.display = "none";
-            appendMessage("ai", "You've been logged out. Please provide your phone number to log in again.");
+            appendMessage("ai", "You've been logged out. Please provide your phone number to log in again.", "Logged out");
             
             // Reset session to force re-authentication
             sessionId = crypto.randomUUID();

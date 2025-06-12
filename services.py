@@ -1,3 +1,4 @@
+import pprint
 import requests
 
 def send_otp(phone_number):
@@ -62,17 +63,31 @@ def create_payout(pending_transfer, user):
         "username": user.username,
         "amount": pending_transfer['amount'],
         "name": "John Doe",
-        "account": user.phone_number,
+        "account": pending_transfer['phone_number'],
+        "accountName":pending_transfer['name'],
+        "accountNumber": pending_transfer['phone_number'],
+        "accountType": 'MOMO',
         "network": "MTN",
+        "bankCode": "MTN",
         "reference": pending_transfer['reference'],
         "api_key":"fb5d5ed44582a40e1befa33f848852c95eece4a87f81040da6abbe7adc06b071"
     }
+    pprint.pprint(body)
     url = "https://prestoghana.com/api/payout"
     headers = {"x-api-key": "fb5d5ed44582a40e1befa33f848852c95eece4a87f81040da6abbe7adc06b071"}
     response = requests.post(url, json=body, headers=headers)
     return response.json()
 
-def confirm_payout(payoutId):
-    url = "https://prestoghana.com/firepayout/"+payoutId
-    response = requests.post(url)
+def confirm_payout(payout, pin, user):
+    print("payoutId")
+    print(payout)
+    
+    payoutId = payout['id']
+    # do authentication before this call ... I guess
+    print("Confirming payout...")
+    url = "https://prestoghana.com/api/firepayout/"+str(payoutId)
+    print(f"Making request to URL: {url}")
+    headers = {"x-api-key": "fb5d5ed44582a40e1befa33f848852c95eece4a87f81040da6abbe7adc06b071"}
+    response = requests.post(url, headers=headers)
+    print(f"Response received: {response.json()}")
     return response.json()

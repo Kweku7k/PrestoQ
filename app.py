@@ -2,6 +2,7 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 import pprint
 import re
+import json
 from flask import Flask, render_template, request, jsonify
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
@@ -249,10 +250,12 @@ def chat_backend():
                         "pending": False,
                         "user": user
                     }
-                elif session_budgets[session_id].get('status') != "LOGGED_IN":
+                elif session_budgets[session_id].get('status') not in ["LOGGED_IN", "PENDING_PAYMENT_CONFIRMATION"]:
+                    # Only override status if it's not already in a special state
                     session_budgets[session_id]['status'] = "LOGGED_IN"
                     session_budgets[session_id]['pending'] = False
                     session_budgets[session_id]['user'] = user
+
         except Exception as e:
             print(f"Token verification error: {str(e)}")
             # Token is invalid, continue with normal flow
@@ -278,150 +281,150 @@ def chat_backend():
     print("SESSION BUDGETS: ")
     pprint.pprint(session_budgets)
         
-    if session_budgets[session_id]['status'] == "PENDING_PHONE_NUMBER":
-        # check if the phone number is correct
-        # lets verify if this is an actual phone number
-        user_message = user_message.replace(" ", "").replace("-", "")
-        if not re.match(r'^\+\d{9,15}$', user_message):   
+    # if session_budgets[session_id]['status'] == "PENDING_PHONE_NUMBER":
+    #     # check if the phone number is correct
+    #     # lets verify if this is an actual phone number
+    #     user_message = user_message.replace(" ", "").replace("-", "")
+    #     if not re.match(r'^\+\d{9,15}$', user_message):   
             
-        #  check to see if there is a plus starting the phone number if not tell the user to start with a +
-            if not user_message.startswith("+"):
-                return jsonify({
-                    "response": f"❌ Phone Number should be in format: +233"
-                })
+    #     #  check to see if there is a plus starting the phone number if not tell the user to start with a +
+    #         if not user_message.startswith("+"):
+    #             return jsonify({
+    #                 "response": f"❌ Phone Number should be in format: +233"
+    #             })
 
-            return jsonify({
-                "response": f"❌ Invalid phone number, please try again"
-            })
+    #         return jsonify({
+    #             "response": f"❌ Invalid phone number, please try again"
+    #         })
         
-        user = User.query.filter_by(phone_number=user_message).first()
+    #     user = User.query.filter_by(phone_number=user_message).first()
         
-        if user is None:
+    #     if user is None:
             
-            # check if user already exists
-            user = User.query.filter_by(username=user_message).first()
+    #         # check if user already exists
+    #         user = User.query.filter_by(username=user_message).first()
             
-            new_user = User(phone_number=user_message, username="USER", pin="0000")
-            db.session.add(new_user)
-            db.session.commit()
+    #         new_user = User(phone_number=user_message, username="USER", pin="0000")
+    #         db.session.add(new_user)
+    #         db.session.commit()
             
-            session_budgets[session_id]['status'] = "PENDING_NAME"
-            session_budgets[session_id]['phone_number'] = user_message
-            return jsonify({
-                "response": f"Hi! I am Mama Lizy, what is your name?"
-            })
-        session_budgets[session_id]['user'] = user
+    #         session_budgets[session_id]['status'] = "PENDING_NAME"
+    #         session_budgets[session_id]['phone_number'] = user_message
+    #         return jsonify({
+    #             "response": f"Hi! I am Mama Lizy, what is your name?"
+    #         })
+    #     session_budgets[session_id]['user'] = user
         
-        session_budgets[session_id]['status'] = "PENDING_OTP"
-        send_otp(user.phone_number)
-        return jsonify({
-                "response": f"Hi {user.username}, I just shot you an otp, please verify!"
-            })
+    #     session_budgets[session_id]['status'] = "PENDING_OTP"
+    #     send_otp(user.phone_number)
+    #     return jsonify({
+    #             "response": f"Hi {user.username}, I just shot you an otp, please verify!"
+    #         })
         
-    if session_budgets[session_id]['status'] == "PENDING_NAME":
-        # check if the phone number is correct
-        user = User.query.filter_by(phone_number=session_budgets[session_id]['phone_number']).first()
+    # if session_budgets[session_id]['status'] == "PENDING_NAME":
+    #     # check if the phone number is correct
+    #     user = User.query.filter_by(phone_number=session_budgets[session_id]['phone_number']).first()
 
-        if user is not None:
-            user.username = user_message
-            db.session.commit()
+    #     if user is not None:
+    #         user.username = user_message
+    #         db.session.commit()
             
-        # Generate JWT token for persistence
-        token = jwt.encode({
-            'username': user_message,
-            'phone_number': session_budgets[session_id]['phone_number'],
-            'exp': datetime.utcnow() + datetime.timedelta(days=30)
-        }, JWT_SECRET, algorithm=JWT_ALGORITHM)
+    #     # Generate JWT token for persistence
+    #     token = jwt.encode({
+    #         'username': user_message,
+    #         'phone_number': session_budgets[session_id]['phone_number'],
+    #         'exp': datetime.utcnow() + datetime.timedelta(days=30)
+    #     }, JWT_SECRET, algorithm=JWT_ALGORITHM)
 
-        session_budgets[session_id]['status'] = "LOGGED_IN"
-        session_budgets[session_id]['pending'] = False
-        session_budgets[session_id]['user'] = user
+    #     session_budgets[session_id]['status'] = "LOGGED_IN"
+    #     session_budgets[session_id]['pending'] = False
+    #     session_budgets[session_id]['user'] = user
         
-        return jsonify({
-            "response": f"✅ You're logged in",
-            "token": token
-        })
+    #     return jsonify({
+    #         "response": f"✅ You're logged in",
+    #         "token": token
+    #     })
         
-    if session_budgets[session_id]['status'] == "PENDING_OTP":
-        # check if the otp is correct
-        if int(user_message) == session_budgets[session_id]['otp']:
-            user = session_budgets[session_id]['user']
+    # if session_budgets[session_id]['status'] == "PENDING_OTP":
+    #     # check if the otp is correct
+    #     if int(user_message) == session_budgets[session_id]['otp']:
+    #         user = session_budgets[session_id]['user']
             
-            # Generate JWT token for persistence
-            token = jwt.encode({
-                'username': user.username,
-                'phone_number': user.phone_number,
-                'exp': datetime.now() + timedelta(days=30)
-            }, JWT_SECRET, algorithm=JWT_ALGORITHM)
+    #         # Generate JWT token for persistence
+    #         token = jwt.encode({
+    #             'username': user.username,
+    #             'phone_number': user.phone_number,
+    #             'exp': datetime.now() + timedelta(days=30)
+    #         }, JWT_SECRET, algorithm=JWT_ALGORITHM)
             
-            session_budgets[session_id]['status'] = "LOGGED_IN"
-            session_budgets[session_id]['pending'] = False
+    #         session_budgets[session_id]['status'] = "LOGGED_IN"
+    #         session_budgets[session_id]['pending'] = False
             
-            return jsonify({
-                "response": f"Heyyyy {user.username}, welcome back!",
-                "token": token
-            })
-        else:
-            return jsonify({
-                "response": f"❌ Invalid OTP, please try again"
-            })
+    #         return jsonify({
+    #             "response": f"Heyyyy {user.username}, welcome back!",
+    #             "token": token
+    #         })
+    #     else:
+    #         return jsonify({
+    #             "response": f"❌ Invalid OTP, please try again"
+    #         })
 
-      # Set budget if provided and not already set
+    #   # Set budget if provided and not already set
       
-    if session_budgets[session_id]['status'] == "PENDING_PAYMENT_CONFIRMATION":
-        if "yes" in user_message.lower() and "pending_transfer" in session_budgets.get(session_id, {}):
-            print("USER ENTERED YES")
-            tx = session_budgets[session_id]["pending_transfer"]
+    # if session_budgets[session_id]['status'] == "PENDING_PAYMENT_CONFIRMATION":
+    #     if "yes" in user_message.lower() and "pending_transfer" in session_budgets.get(session_id, {}):
+    #         print("USER ENTERED YES")
+    #         tx = session_budgets[session_id]["pending_transfer"]
 
 
-            payoutId = session_budgets[session_id]['pending_payout']['id']
-            response = services.confirm_payout(payoutId) #TODO: MAKE THIS PAYOUT CONFIRMATION
-            # response = services.trigger_payment() #TODO: MAKE THIS PAYOUT CONFIRMATION
+    #         payoutId = session_budgets[session_id]['pending_payout']['id']
+    #         response = services.confirm_payout(payoutId) #TODO: MAKE THIS PAYOUT CONFIRMATION
+    #         # response = services.trigger_payment() #TODO: MAKE THIS PAYOUT CONFIRMATION
 
-            if response:
-                session_budgets[session_id].pop("pending_transfer", None)
-                return jsonify({"response": f"✅ Sent GHC {tx['amount']:.2f} to {tx['phone_number']} for \"{tx['reference']}\"."})
-            else:
-                return jsonify({"response": "❌ Something went wrong while trying to send the money. Please try again later."})
+    #         if response:
+    #             session_budgets[session_id].pop("pending_transfer", None)
+    #             return jsonify({"response": f"✅ Sent GHC {tx['amount']:.2f} to {tx['phone_number']} for \"{tx['reference']}\"."})
+    #         else:
+    #             return jsonify({"response": "❌ Something went wrong while trying to send the money. Please try again later."})
     
    
     #SEND MONEY PATTERN!
-    send_money_pattern = re.search(r'send\s+(?:ghc)?\s?(\d+(?:\.\d{1,2})?)\s+to\s+(\d{10})\s*(?:for\s+(.*))?', user_message.lower())
-    if send_money_pattern: 
-        amount = float(send_money_pattern.group(1))
-        phone_number = send_money_pattern.group(2)
-        reference = send_money_pattern.group(3) or "No reference"
+    # send_money_pattern = re.search(r'send\s+(?:ghc)?\s?(\d+(?:\.\d{1,2})?)\s+to\s+(\d{10})\s*(?:for\s+(.*))?', user_message.lower())
+    # if send_money_pattern: 
+    #     amount = float(send_money_pattern.group(1))
+    #     phone_number = send_money_pattern.group(2)
+    #     reference = send_money_pattern.group(3) or "No reference"
 
 
-        pending_transfer = {
-                "phone_number": phone_number,
-                "amount": amount,
-                "reference": reference
-            }
+    #     pending_transfer = {
+    #             "phone_number": phone_number,
+    #             "amount": amount,
+    #             "reference": reference
+    #         }
         
-        # Store the pending transfer without overwriting the entire session
-        session_budgets[session_id]["pending_transfer"] = pending_transfer
+    #     # Store the pending transfer without overwriting the entire session
+    #     session_budgets[session_id]["pending_transfer"] = pending_transfer
         
-        # identify user by phone number
-        name = services.momolookup(phone_number)
+    #     # identify user by phone number
+    #     name = services.momolookup(phone_number)
         
-        # Get the current user from the session
-        user = session_budgets[session_id].get('user')
-        if not user:
-            return jsonify({"response": "You need to be logged in to make a transfer."})
+    #     # Get the current user from the session
+    #     user = session_budgets[session_id].get('user')
+    #     if not user:
+    #         return jsonify({"response": "You need to be logged in to make a transfer."})
             
-        payout = services.create_payout(pending_transfer, user)
+    #     payout = services.create_payout(pending_transfer, user)
         
-        # add payout to session_budgets
-        session_budgets[session_id]['pending_payout'] = payout['data']
-        pprint.pprint(payout)
+    #     # add payout to session_budgets
+    #     session_budgets[session_id]['pending_payout'] = payout['data']
+    #     pprint.pprint(payout)
         
-        # Update status to pending payment confirmation
-        session_budgets[session_id]['status'] = "PENDING_PAYMENT_CONFIRMATION"
+    #     # Update status to pending payment confirmation
+    #     session_budgets[session_id]['status'] = "PENDING_PAYMENT_CONFIRMATION"
         
-        return jsonify({
-            "response": f"You're about to send GHC {amount:.2f} to {name} for \"{reference}\". Enter your pin so I proceed?"
-        })
+    #     return jsonify({
+    #         "response": f"You're about to send GHC {amount:.2f} to {name} for \"{reference}\". Enter your pin so I proceed?"
+    #     })
         
         
     # confirm transactionft
@@ -527,22 +530,339 @@ def chat_backend():
     
     # ========= OPEN AI CALL =============
 
+    # Define functions for GPT-4 to call
+    tools = [
+        {
+            "type": "function",
+            "function": {
+                "name": "send_money",
+                "description": "Send money to a recipient using their phone number",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "amount": {
+                            "type": "number",
+                            "description": "The amount of money to send in GHC"
+                        },
+                        "phone_number": {
+                            "type": "string",
+                            "description": "The recipient's phone number (10 digits)"
+                        },
+                        "reference": {
+                            "type": "string",
+                            "description": "The reason for sending money"
+                        }
+                    },
+                    "required": ["amount", "phone_number"]
+                }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "confirm_payout",
+                "description": "Confirm a pending money transfer after PIN verification",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "pin": {
+                            "type": "string",
+                            "description": "The user's PIN for confirming the transaction"
+                        }
+                    },
+                    "required": ["pin"]
+                }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "add_shopping_item",
+                "description": "Add an item to the shopping list",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "item": {
+                            "type": "string",
+                            "description": "The item to add to the shopping list"
+                        },
+                        "estimated_cost": {
+                            "type": "number",
+                            "description": "The estimated cost of the item in GHC"
+                        }
+                    },
+                    "required": ["item"]
+                }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "show_shopping_list",
+                "description": "Show the current shopping list",
+                "parameters": {
+                    "type": "object",
+                    "properties": {}
+                }
+            }
+        }
+    ]
+
     # Add user message to session history
     chat_sessions[session_id].append({"role": "user", "content": user_message})
+    
+    
+    # # Check if there's a pending payment confirmation and the message might contain a PIN
+    # if session_budgets[session_id].get('status') == "PENDING_PAYMENT_CONFIRMATION" and user_message.strip().isdigit():
+    #     # Automatically invoke the confirm_payout function with the PIN
+    #     pending_info = {
+    #     "role": "system",
+    #     "content": "There is a pending payment that needs confirmation. If the user has entered what appears to be a PIN (a numeric code), use the confirm_payout function with that PIN."
+    #     }
+    #     chat_sessions[session_id].append(pending_info)     
+    if session_budgets[session_id].get('status') == "PENDING_PAYMENT_CONFIRMATION":
+        pending_info = {
+            "role": "system",
+            "content": "There is a pending payment that needs confirmation. If the user has entered what appears to be a PIN (a numeric code), use the confirm_payout function with that PIN."
+        }
+        chat_sessions[session_id].append(pending_info)
 
+    # Call the OpenAI API
     completion = client.chat.completions.create(
-    # model = "gpt-3.5-turbo",
-    model = "gpt-4",
-    messages=chat_sessions[session_id],
-    temperature=0.7
+        model = "gpt-4",
+        messages=chat_sessions[session_id],
+        temperature=0.7,
+        tools=tools,
+        tool_choice="auto"
     )
+    response_message = completion.choices[0].message
+
+    # Remove the temporary context message if we added it
+    if session_budgets[session_id].get('status') == "PENDING_PAYMENT_CONFIRMATION":
+        # Remove the last system message if it was our pending info
+        if len(chat_sessions[session_id]) > 0 and chat_sessions[session_id][-1]["role"] == "system":
+            chat_sessions[session_id].pop()
+        
+    else:
+        # Normal flow - call the OpenAI API
+        
+        pprint.pprint(chat_sessions[session_id])
+
+        completion = client.chat.completions.create(
+            model = "gpt-4",
+            messages=chat_sessions[session_id],
+            temperature=0.7,
+            tools=tools,
+            tool_choice="auto"
+        )
+        response_message = completion.choices[0].message
+        
+    def extract_tool_calls(msg):
+        if not msg:
+            return None
+        try:
+            if isinstance(msg, dict):
+                return msg.get("tool_calls")
+            return getattr(msg, "tool_calls", None)
+        except Exception as e:
+            print(f"Error extracting tool_calls: {e}")
+            return None
+
+    tool_calls = extract_tool_calls(response_message)
+
+    print(tool_calls)
 
     try:
-        print(completion.choices[0].message.content)
-        return jsonify({"response": completion.choices[0].message.content}), 200
+        print("Processing response message...")
+        pprint.pprint(response_message)
+        print(type(response_message))
+        # response_message is now defined either from completion or directly for PIN handling
+        
+        
+        # Check if the model wants to call a function
+        # if hasattr(response_message, 'tool_calls') and response_message.tool_calls:
+        # if tool_calls:
+        if (hasattr(response_message, 'tool_calls') and response_message.tool_calls) or response_message.get('tool_calls'):
+            print(f"Found tool calls: {len(response_message.tool_calls)}")
+            # Process each function call
+            for tool_call in response_message.tool_calls:
+                function_name = tool_call.function.name
+                function_args = json.loads(tool_call.function.arguments)
+                print(f"Processing function call: {function_name}")
+                print(f"Function arguments: {function_args}")
+                
+                # Add the assistant's message to the conversation
+                chat_sessions[session_id].append(response_message)
+                
+                # Handle different function calls
+                if function_name == "send_money":
+                    print("Handling send_money function")
+                    amount = function_args.get("amount")
+                    phone_number = function_args.get("phone_number")
+                    reference = function_args.get("reference", "No reference")
+                    
+                    # Create pending transfer
+                    pending_transfer = {
+                        "phone_number": phone_number,
+                        "amount": amount,
+                        "reference": reference
+                    }
+                    print(f"Created pending transfer: {pending_transfer}")
+                    
+                    # Store the pending transfer
+                    session_budgets[session_id]["pending_transfer"] = pending_transfer
+                    
+                    # Get recipient name
+                    name = services.momolookup(phone_number)
+                    print(f"Retrieved recipient name: {name}")
+                    
+                    pending_transfer['name'] = name
+                                    
+                    # Get the current user from the session
+                    user = session_budgets[session_id].get('user')
+                    if not user:
+                        print("No user found in session")
+                        return jsonify({"response": "You need to be logged in to make a transfer."})
+                        
+                    # Create payout
+                    payout = services.create_payout(pending_transfer, user)
+                    print(f"Created payout: {payout}")
+                    
+                    # Add payout to session_budgets
+                    session_budgets[session_id]['pending_payout'] = payout['data']
+                    
+                    # Update status to pending payment confirmation
+                    session_budgets[session_id]['status'] = "PENDING_PAYMENT_CONFIRMATION"
+                    
+                    # Add the function response to the conversation
+                    function_response = f"You're about to send GHC {amount:.2f} to {name} for \"{reference}\". Enter your pin so I proceed?"
+                    chat_sessions[session_id].append({
+                        "role": "tool",
+                        "tool_call_id": tool_call.id,
+                        "name": function_name,
+                        "content": function_response
+                    })
+                    
+                    return jsonify({"response": function_response, "status": session_budgets[session_id]['status']})
+                    
+                elif function_name == "add_shopping_item":
+                    print("Handling add_shopping_item function")
+                    item = function_args.get("item")
+                    estimated_cost = function_args.get("estimated_cost")
+                    
+                    # Add to shopping list
+                    add_to_shopping_list(session_id, item, estimated_cost)
+                    print(f"Added item to shopping list: {item}, cost: {estimated_cost}")
+                    
+                    # Add the function response to the conversation
+                    function_response = f"I've added {item} to your shopping list. Would you like to set an estimated cost for this item?"
+                    chat_sessions[session_id].append({
+                        "role": "tool",
+                        "tool_call_id": tool_call.id,
+                        "name": function_name,
+                        "content": function_response
+                    })
+                    
+                    return jsonify({"response": function_response, "status": session_budgets[session_id].get('status', 'IDLE')})
+                    
+                elif function_name == "show_shopping_list":
+                    print("Handling show_shopping_list function")
+                    shopping_list = get_shopping_list(session_id)
+                    if not shopping_list:
+                        print("Shopping list is empty")
+                        function_response = "Your shopping list is empty."
+                        chat_sessions[session_id].append({
+                            "role": "tool",
+                            "tool_call_id": tool_call.id,
+                            "name": function_name,
+                            "content": function_response
+                        })
+                        return jsonify({"response": function_response, "status": session_budgets[session_id].get('status', 'IDLE')})
+                    
+                    items_text = "\n".join([f"- {item['item']}: Ghc{item['estimated_cost']:.2f}" 
+                                          for item in shopping_list])
+                    total = calculate_list_total(session_id)
+                    print(f"Shopping list items:\n{items_text}")
+                    print(f"Total cost: {total}")
+                    
+                    function_response = f"Here's your shopping list:\n{items_text}\n\nTotal estimated cost: Ghc{total:.2f}"
+                    
+                    chat_sessions[session_id].append({
+                        "role": "tool",
+                        "tool_call_id": tool_call.id,
+                        "name": function_name,
+                        "content": function_response
+                    })
+                    
+                    return jsonify({"response": function_response, "status": session_budgets[session_id].get('status', 'IDLE')})
+                    
+                elif function_name == "confirm_payout":
+                    print("Handling confirm_payout function")
+                    pin = function_args.get("pin")
+                    
+                    # Check if there's a pending payout
+                    if session_budgets[session_id].get('status') != "PENDING_PAYMENT_CONFIRMATION" or not session_budgets[session_id].get('pending_payout'):
+                        print("No pending payout found")
+                        function_response = "There is no pending transaction to confirm."
+                        chat_sessions[session_id].append({
+                            "role": "tool",
+                            "tool_call_id": tool_call.id,
+                            "name": function_name,
+                            "content": function_response
+                        })
+                        return jsonify({"response": function_response, "status": session_budgets[session_id].get('status', 'IDLE')})
+                    
+                    # Get the pending payout and user
+                    pending_payout = session_budgets[session_id].get('pending_payout')
+                    user = session_budgets[session_id].get('user')
+                    print(f"Processing payout for user: {user}")
+                    
+                    # Process the payout with the PIN
+                    result = services.confirm_payout(pending_payout, pin, user)
+                    print(f"Payout confirmation result: {result}")
+                    
+                    if result.get('success') == True:
+                        print("Transaction successful")
+                        # Clear the pending state but keep user logged in
+                        session_budgets[session_id]['status'] = "LOGGED_IN"
+                        session_budgets[session_id]['pending_payout'] = None
+                        session_budgets[session_id]['pending_transfer'] = None
+
+                        
+                        # Format the response
+                        amount = pending_payout.get('amount')
+                        recipient = pending_payout.get('recipient_name', 'the recipient')
+                        reference = pending_payout.get('reference', 'No reference')
+                        
+                        function_response = f"Transaction successful! GHC {amount:.2f} has been sent to {recipient} for \"{reference}\"."
+                    else:
+                        print("Transaction failed")
+                        function_response = f"Transaction failed: {result.get('message', 'Invalid PIN or transaction error.')}"
+                    
+                    chat_sessions[session_id].append({
+                        "role": "tool",
+                        "tool_call_id": tool_call.id,
+                        "name": function_name,
+                        "content": function_response
+                    })
+                    
+                    # return jsonify({"response": function_response})
+                    return jsonify({"response": function_response, "status": session_budgets[session_id]['status']})
+
+            
+            # If we get here, no function was handled
+            print("No matching function handler found")
+            return jsonify({"response": "I'm not sure how to handle that request.", "status": session_budgets[session_id].get('status', 'IDLE')}), 200
+        else:
+            print("No tool calls found, returning direct response")
+            # No function call, just return the response
+            return jsonify({"response": response_message.content, "status": session_budgets[session_id].get('status', 'IDLE')}), 200
+            
     except Exception as e:
         print(f"Error generating response: {str(e)}")
-        return jsonify({"response": "I'm sorry, I'm having trouble responding right now. Please try again later."}), 500
+        return jsonify({"response": "I'm sorry, I'm having trouble responding right now. Please try again later.", "status": "ERROR"}), 500
+
+import uuid
 
 if __name__ == "__main__":
     app.run(debug=True, host='0.0.0.0')
