@@ -1,4 +1,5 @@
 import pprint
+from flask import jsonify
 import requests
 
 def send_otp(phone_number):
@@ -91,3 +92,95 @@ def confirm_payout(payout, pin, user):
     response = requests.post(url, headers=headers)
     print(f"Response received: {response.json()}")
     return response.json()
+
+# Add this helper function at the top of your file
+def create_response(message, status=None, token=None):
+    """Create a standardized response with status and optional token"""
+    response = {"response": message}
+    
+    # Always include the status if available
+    if status:
+        response["status"] = status
+    
+    # Include token if provided
+    if token:
+        response["token"] = token
+        
+    return jsonify(response)
+
+tools = [
+        {
+            "type": "function",
+            "function": {
+                "name": "send_money",
+                "description": "Send money to a recipient using their phone number",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "amount": {
+                            "type": "number",
+                            "description": "The amount of money to send in GHC"
+                        },
+                        "phone_number": {
+                            "type": "string",
+                            "description": "The recipient's phone number (10 digits)"
+                        },
+                        "reference": {
+                            "type": "string",
+                            "description": "The reason for sending money"
+                        }
+                    },
+                    "required": ["amount", "phone_number"]
+                }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "confirm_payout",
+                "description": "Confirm a pending money transfer after PIN verification",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "pin": {
+                            "type": "string",
+                            "description": "The user's PIN for confirming the transaction"
+                        }
+                    },
+                    "required": ["pin"]
+                }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "add_shopping_item",
+                "description": "Add an item to the shopping list",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "item": {
+                            "type": "string",
+                            "description": "The item to add to the shopping list"
+                        },
+                        "estimated_cost": {
+                            "type": "number",
+                            "description": "The estimated cost of the item in GHC"
+                        }
+                    },
+                    "required": ["item"]
+                }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "show_shopping_list",
+                "description": "Show the current shopping list",
+                "parameters": {
+                    "type": "object",
+                    "properties": {}
+                }
+            }
+        }
+    ]

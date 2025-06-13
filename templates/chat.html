@@ -5,6 +5,28 @@
     body{
         background-color: black;
     }
+    
+    .loading-dots {
+        display: inline-block;
+    }
+    
+    .loading-dots:after {
+        content: '.';
+        animation: dots 1.5s steps(5, end) infinite;
+    }
+    
+    @keyframes dots {
+        0%, 20% { content: '.'; }
+        40% { content: '..'; }
+        60% { content: '...'; }
+        80%, 100% { content: ''; }
+    }
+    
+    .loading-message {
+        display: flex;
+        align-items: center;
+    }
+
 </style>
 {% endblock %}
 
@@ -143,77 +165,187 @@
             chatBox.scrollTop = chatBox.scrollHeight;
         }
 
-        async function sendMessage() {
-            const message = userInput.value.trim();
-            const budget = budgetInput.value.trim();
+        // async function sendMessage() {
+        //     const message = userInput.value.trim();
+        //     const budget = budgetInput.value.trim();
 
-            if (!message) return;
+        //     if (!message) return;
 
-            appendMessage("user", message);
-            userInput.value = "";
+        //     appendMessage("user", message);
+        //     userInput.value = "";
 
-            try {
-                // Prepare request headers and body
-                const headers = { "Content-Type": "application/json" };
-                const requestBody = {
-                    message,
-                    session_id: sessionId,
-                    budget: budget || null
-                };
+        //     try {
+        //         // Prepare request headers and body
+        //         const headers = { "Content-Type": "application/json" };
+        //         const requestBody = {
+        //             message,
+        //             session_id: sessionId,
+        //             budget: budget || null
+        //         };
                 
-                // Add token if available
-                if (authToken) {
-                    requestBody.token = authToken;
-                }
+        //         // Add token if available
+        //         if (authToken) {
+        //             requestBody.token = authToken;
+        //         }
 
-                const res = await fetch("/chat-backend", {
-                    method: "POST", 
-                    headers: headers,
-                    body: JSON.stringify(requestBody)
-                });
+        //         const res = await fetch("/chat-backend", {
+        //             method: "POST", 
+        //             headers: headers,
+        //             body: JSON.stringify(requestBody)
+        //         });
                 
-                console.log("MESSAGE SENT SUCCESSFULLY");
-                const data = await res.json();
+        //         console.log("MESSAGE SENT SUCCESSFULLY");
+        //         const data = await res.json();
 
-                if (data.response) {
-                    // Get status from response if available
-                    const status = data.status || null;
-                    appendMessage("ai", data.response, status);
+        //         if (data.response) {
+        //             // Get status from response if available
+        //             const status = data.status || null;
+        //             appendMessage("ai", data.response, status);
                     
-                    // Check if response contains a token
-                    if (data.token) {
-                        // Store the token
-                        localStorage.setItem("authToken", data.token);
-                        authToken = data.token;
+        //             // Check if response contains a token
+        //             if (data.token) {
+        //                 // Store the token
+        //                 localStorage.setItem("authToken", data.token);
+        //                 authToken = data.token;
                         
-                        // Try to extract username from token (if possible)
-                        try {
-                            const tokenParts = authToken.split('.');
-                            if (tokenParts.length === 3) {
-                                const payload = JSON.parse(atob(tokenParts[1]));
-                                if (payload.username) {
-                                    localStorage.setItem("userName", payload.username);
-                                    // Update UI to show logged in user
-                                    document.getElementById("user-info").style.display = "block";
-                                    document.getElementById("logged-user-name").textContent = payload.username;
-                                }
-                            }
-                        } catch (e) {
-                            console.error("Error parsing token:", e);
-                        }
-                    }
-                } else {
-                    appendMessage("ai", "💩", "Error occurred");
-                    console.error(data.error);
-                }
+        //                 // Try to extract username from token (if possible)
+        //                 try {
+        //                     const tokenParts = authToken.split('.');
+        //                     if (tokenParts.length === 3) {
+        //                         const payload = JSON.parse(atob(tokenParts[1]));
+        //                         if (payload.username) {
+        //                             localStorage.setItem("userName", payload.username);
+        //                             // Update UI to show logged in user
+        //                             document.getElementById("user-info").style.display = "block";
+        //                             document.getElementById("logged-user-name").textContent = payload.username;
+        //                         }
+        //                     }
+        //                 } catch (e) {
+        //                     console.error("Error parsing token:", e);
+        //                 }
+        //             }
+        //         } else {
+        //             appendMessage("ai", "💩", "Error occurred");
+        //             console.error(data.error);
+        //         }
             
-            } catch (error) {
-                console.error("Error sending message:", error);
-                appendMessage("ai", "💩", "Network error");
-                sendErrorMessage();
-                return;
+        //     } catch (error) {
+        //         console.error("Error sending message:", error);
+        //         appendMessage("ai", "💩", "Network error");
+        //         sendErrorMessage();
+        //         return;
+        //     }
+        // }
+
+        async function sendMessage() {
+        const message = userInput.value.trim();
+        const budget = budgetInput.value.trim();
+
+        if (!message) return;
+
+        appendMessage("user", message);
+        userInput.value = "";
+        
+        // Add loading indicator
+        const loadingId = showLoadingIndicator();
+
+        try {
+            // Prepare request headers and body
+            const headers = { "Content-Type": "application/json" };
+            const requestBody = {
+                message,
+                session_id: sessionId,
+                budget: budget || null
+            };
+            
+            // Add token if available
+            if (authToken) {
+                requestBody.token = authToken;
             }
+
+            const res = await fetch("/chat-backend", {
+                method: "POST", 
+                headers: headers,
+                body: JSON.stringify(requestBody)
+            });
+            
+            console.log("MESSAGE SENT SUCCESSFULLY");
+            const data = await res.json();
+            
+            // Remove loading indicator
+            removeLoadingIndicator(loadingId);
+
+            if (data.response) {
+                // Get status from response if available
+                const status = data.status || null;
+                appendMessage("ai", data.response, status);
+                
+                // Check if response contains a token
+                if (data.token) {
+                    // Store the token
+                    localStorage.setItem("authToken", data.token);
+                    authToken = data.token;
+                    
+                    // Try to extract username from token (if possible)
+                    try {
+                        const tokenParts = authToken.split('.');
+                        if (tokenParts.length === 3) {
+                            const payload = JSON.parse(atob(tokenParts[1]));
+                            if (payload.username) {
+                                localStorage.setItem("userName", payload.username);
+                                // Update UI to show logged in user
+                                document.getElementById("user-info").style.display = "block";
+                                document.getElementById("logged-user-name").textContent = payload.username;
+                            }
+                        }
+                    } catch (e) {
+                        console.error("Error parsing token:", e);
+                    }
+                }
+            } else {
+                appendMessage("ai", "💩", "Error occurred");
+                console.error(data.error);
+            }
+        
+        } catch (error) {
+            // Remove loading indicator on error
+            removeLoadingIndicator(loadingId);
+            console.error("Error sending message:", error);
+            appendMessage("ai", "💩", "Network error");
+            sendErrorMessage();
+            return;
         }
+    }
+
+    // Function to show loading indicator
+    function showLoadingIndicator() {
+        const loadingContainer = document.createElement("div");
+        loadingContainer.className = "loading-message";
+        
+        const loadingMessage = document.createElement("div");
+        loadingMessage.className = "ai-message";
+        loadingMessage.textContent = "🤖 AI: Thinking";
+        
+        const loadingDots = document.createElement("span");
+        loadingDots.className = "loading-dots";
+        
+        loadingMessage.appendChild(loadingDots);
+        loadingContainer.appendChild(loadingMessage);
+        chatBox.appendChild(loadingContainer);
+        chatBox.scrollTop = chatBox.scrollHeight;
+        
+        return loadingContainer.id = "loading-" + Date.now();
+    }
+
+    // Function to remove loading indicator
+    function removeLoadingIndicator(id) {
+        const loadingElement = document.getElementById(id);
+        if (loadingElement) {
+            loadingElement.remove();
+        }
+    }
+
+
 
         // Add logout function
         function logout() {
