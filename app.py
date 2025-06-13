@@ -6,9 +6,10 @@ import json
 from flask import Flask, render_template, request, jsonify
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
+import jwt
 from openai import OpenAI
 import os
-import jwt
+# import jwt
 import bcrypt
 from functools import wraps
 from flask_migrate import Migrate
@@ -361,6 +362,8 @@ def chat_backend():
         
     if session_budgets[session_id]['status'] == "PENDING_OTP":
         # check if the otp is correct
+        # check to see if the input is not null
+        
         if int(user_message) == session_budgets[session_id]['otp']:
             user = session_budgets[session_id]['user']
             
