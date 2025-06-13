@@ -212,6 +212,7 @@ def chat():
 
 @app.route('/chat-backend', methods=['POST'])
 def chat_backend():
+    print("Starting chat_backend function")
     
     data = request.get_json()
     user_message = data.get("message", "")
@@ -220,49 +221,48 @@ def chat_backend():
     token = data.get("token", "")  # Get token from request JSON
     user_reflections[session_id] = []
     
-    print(f"session_id: {session_id}")
+    print(f"Received request data: message={user_message}, session_id={session_id}, budget={budget}, token={token}")
     
     if not session_id or not user_message:
+        print("Missing required fields")
         return jsonify({"error": "Both 'session_id' and 'message' are required."}), 400
     
     # Check for JWT token in the request data or headers
     if not token:
+        print("No token in request data, checking headers")
         token = request.headers.get('Authorization')
-        # if token == "":
-        #     session_budgets[session_id] = {
-        #     "status":"PENDING_PHONE_NUMBER",
-        #     "pending":True,
-        #     "otp":1234
-        # }
-        
-        # # send otp
-        # return jsonify({
-        #     "response": f"Hi, please give me your phone number so I log you in"
-        # })
         
     if token:
+        print("Processing token")
         try:
             # Verify the token
+            print("Decoding JWT token")
             decoded = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
             username = decoded.get('username')
             phone_number = decoded.get('phone_number')
+            print(f"Decoded token: username={username}, phone_number={phone_number}")
             
             # Find the user in the database
             user = None
             if phone_number:
+                print(f"Looking up user by phone number: {phone_number}")
                 user = User.query.filter_by(phone_number=phone_number).first()
             elif username:
+                print(f"Looking up user by username: {username}")
                 user = User.query.filter_by(username=username).first()
                 
             if user:
+                print(f"Found user: {user.username}")
                 # User is authenticated via JWT
                 if session_budgets.get(session_id, None) is None:
+                    print("Creating new session budget")
                     session_budgets[session_id] = {
                         "status": "LOGGED_IN",
                         "pending": False,
                         "user": user
                     }
                 elif session_budgets[session_id].get('status') not in ["LOGGED_IN", "PENDING_PAYMENT_CONFIRMATION"]:
+                    print("Updating existing session budget")
                     # Only override status if it's not already in a special state
                     session_budgets[session_id]['status'] = "LOGGED_IN"
                     session_budgets[session_id]['pending'] = False
@@ -273,11 +273,9 @@ def chat_backend():
             # Token is invalid, continue with normal flow
             pass
     
-    # else:
-        
-    
     # check to see if a user is logged in, if not request phone number and send an otp for confirmation of user
     if session_budgets.get(session_id, None) is None:
+        print("No session budget found - requesting phone number")
         
         session_budgets[session_id] = {
             "status":"PENDING_PHONE_NUMBER",
@@ -291,18 +289,20 @@ def chat_backend():
         })
         
     user_status = session_budgets.get(session_id, {}).get('status', None) 
-    print("user_status")
-    print("USER STATUS: " +user_status)
-    print("SESSION BUDGETS: ")
+    print(f"Current user status: {user_status}")
+    print("SESSION BUDGETS:")
     pprint.pprint(session_budgets)
         
     if session_budgets[session_id]['status'] == "PENDING_PHONE_NUMBER":
+        print("Processing phone number verification")
         # check if the phone number is correct
         # lets verify if this is an actual phone number
         user_message = user_message.replace(" ", "").replace("-", "")
+        print(f"Formatted phone number: {user_message}")
+        
         if not re.match(r'^\+\d{9,15}$', user_message):   
-            
-        #  check to see if there is a plus starting the phone number if not tell the user to start with a +
+            print("Invalid phone number format")
+            #  check to see if there is a plus starting the phone number if not tell the user to start with a +
             if not user_message.startswith("+"):
                 return jsonify({
                     "response": f"❌ Phone Number should be in format: +233"
@@ -312,39 +312,47 @@ def chat_backend():
                 "response": f"❌ Invalid phone number, please try again"
             })
         
+        print("Looking up user by phone number")
         user = User.query.filter_by(phone_number=user_message).first()
         
         if user is None:
-            
+            print("User not found - creating new user")
             # check if user already exists
             user = User.query.filter_by(username=user_message).first()
             
             new_user = User(phone_number=user_message, username="USER", pin="0000")
             db.session.add(new_user)
             db.session.commit()
+            print(f"Created new user with phone number {user_message}")
             
             session_budgets[session_id]['status'] = "PENDING_NAME"
             session_budgets[session_id]['phone_number'] = user_message
             return jsonify({
                 "response": f"Hi! I am Mama Lizy, what is your name?"
             })
+            
+        print(f"Found existing user: {user.username}")
         session_budgets[session_id]['user'] = user
         
         session_budgets[session_id]['status'] = "PENDING_OTP"
+        print("Sending OTP")
         send_otp(user.phone_number)
         return jsonify({
                 "response": f"Hi {user.username}, I just shot you an otp, please verify!"
             })
         
     if session_budgets[session_id]['status'] == "PENDING_NAME":
+        print("Processing name input")
         # check if the phone number is correct
         user = User.query.filter_by(phone_number=session_budgets[session_id]['phone_number']).first()
 
         if user is not None:
+            print(f"Updating username to: {user_message}")
             user.username = user_message
             db.session.commit()
             
         # Generate JWT token for persistence
+        print("Generating JWT token")
         token = jwt.encode({
             'username': user_message,
             'phone_number': session_budgets[session_id]['phone_number'],
@@ -361,13 +369,16 @@ def chat_backend():
         })
         
     if session_budgets[session_id]['status'] == "PENDING_OTP":
+        print("Verifying OTP")
         # check if the otp is correct
         # check to see if the input is not null
         
         if int(user_message) == session_budgets[session_id]['otp']:
+            print("OTP verified successfully")
             user = session_budgets[session_id]['user']
             
             # Generate JWT token for persistence
+            print("Generating JWT token")
             token = jwt.encode({
                 'username': user.username,
                 'phone_number': user.phone_number,
@@ -382,6 +393,7 @@ def chat_backend():
                 "token": token
             })
         else:
+            print("Invalid OTP")
             return jsonify({
                 "response": f"❌ Invalid OTP, please try again"
             })
@@ -389,81 +401,26 @@ def chat_backend():
       # Set budget if provided and not already set
       
     if session_budgets[session_id]['status'] == "PENDING_PAYMENT_CONFIRMATION":
+        print("Processing payment confirmation")
         if "yes" in user_message.lower() and "pending_transfer" in session_budgets.get(session_id, {}):
-            print("USER ENTERED YES")
+            print("User confirmed payment")
             tx = session_budgets[session_id]["pending_transfer"]
 
 
             payoutId = session_budgets[session_id]['pending_payout']['id']
+            print(f"Confirming payout ID: {payoutId}")
             response = services.confirm_payout(payoutId) #TODO: MAKE THIS PAYOUT CONFIRMATION
-            # response = services.trigger_payment() #TODO: MAKE THIS PAYOUT CONFIRMATION
 
             if response:
+                print("Payment confirmed successfully")
                 session_budgets[session_id].pop("pending_transfer", None)
                 return jsonify({"response": f"✅ Sent GHC {tx['amount']:.2f} to {tx['phone_number']} for \"{tx['reference']}\"."})
             else:
+                print("Payment confirmation failed")
                 return jsonify({"response": "❌ Something went wrong while trying to send the money. Please try again later."})
     
-   
-    #SEND MONEY PATTERN!
-    # send_money_pattern = re.search(r'send\s+(?:ghc)?\s?(\d+(?:\.\d{1,2})?)\s+to\s+(\d{10})\s*(?:for\s+(.*))?', user_message.lower())
-    # if send_money_pattern: 
-    #     amount = float(send_money_pattern.group(1))
-    #     phone_number = send_money_pattern.group(2)
-    #     reference = send_money_pattern.group(3) or "No reference"
-
-
-    #     pending_transfer = {
-    #             "phone_number": phone_number,
-    #             "amount": amount,
-    #             "reference": reference
-    #         }
-        
-    #     # Store the pending transfer without overwriting the entire session
-    #     session_budgets[session_id]["pending_transfer"] = pending_transfer
-        
-    #     # identify user by phone number
-    #     name = services.momolookup(phone_number)
-        
-    #     # Get the current user from the session
-    #     user = session_budgets[session_id].get('user')
-    #     if not user:
-    #         return jsonify({"response": "You need to be logged in to make a transfer."})
-            
-    #     payout = services.create_payout(pending_transfer, user)
-        
-    #     # add payout to session_budgets
-    #     session_budgets[session_id]['pending_payout'] = payout['data']
-    #     pprint.pprint(payout)
-        
-    #     # Update status to pending payment confirmation
-    #     session_budgets[session_id]['status'] = "PENDING_PAYMENT_CONFIRMATION"
-        
-    #     return jsonify({
-    #         "response": f"You're about to send GHC {amount:.2f} to {name} for \"{reference}\". Enter your pin so I proceed?"
-    #     })
-        
-        
-    # confirm transactionft
-        
-     
-    # if budget is not None:
-    #     session_budgets[session_id] = float(budget)
-        
-    # current_budget = session_budgets.get(session_id)['budget']
+    print("Calculating budget context")
     total_spent_amount = total_spent()
-    # budget_context = (
-    #     f"You have a budget of Ghc{current_budget:.2f}."
-    #     if current_budget is not None
-    #     else "No budget has been set."
-    # )
-    
-    # # THE CODE BELOW IS REDUNDANT
-    # budget_context = (
-    #     f"You have a budget of Ghc{current_budget:.2f} and have already spent Ghc{total_spent_amount:.2f}."
-    #     if current_budget is not None
-    #     else "No budget has been set."
-    # )
     current_budget = None
     budget_context = (
     f"You have a budget of Ghc{current_budget:.2f} and have already spent Ghc{total_spent_amount:.2f}."
@@ -473,6 +430,7 @@ def chat_backend():
 
     # If new session, start with system + transaction context
     if len(chat_sessions[session_id]) == 0:
+        print("Initializing new chat session")
         question_stages[session_id] = 0
 
         chat_sessions[session_id].append({
@@ -481,7 +439,7 @@ def chat_backend():
                 You are an African parent who deeply cares about your child's financial well-being.
                 Respond in a warm, firm, and very dramatic tone, often adding life lessons or subtle guilt to drive your point.
                 Keep responses short, straight to the point, and expressive.
-                If the user tries to spend above their budget, respond with a concerned or exasperated tone (e.g. “Ei!”, “Ah ah!”, "Herh") do not constrain to only these responses.
+                If the user tries to spend above their budget, respond with a concerned or exasperated tone (e.g. "Ei!", "Ah ah!", "Herh") do not constrain to only these responses.
                 Ask the average amount. If it's within budget, give approval by replying "Okay, who am I sending the money to?".
                 Use common expressions and Nigerian/Ghanaian slang where appropriate, but keep it clear and friendly.
                 """
@@ -497,13 +455,12 @@ def chat_backend():
     purchase_amount = None
     match = re.search(r'\$(\d+(?:\.\d{2})?)', user_message)
     if match:
+        print(f"Found purchase amount: ${match.group(1)}")
         purchase_amount = float(match.group(1))
 
-
-    # =========== REMINDERS ============
-    
     # Add shopping list context to the conversation
     if len(chat_sessions[session_id]) == 0:
+        print("Adding shopping list context")
         shopping_list = get_shopping_list(session_id)
         shopping_list_context = ""
         if shopping_list:
@@ -525,119 +482,34 @@ def chat_backend():
     
     # Add logic to detect shopping list commands
     if "add" in user_message.lower() and "shopping list" in user_message.lower():
+        print("Processing add to shopping list command")
         # Extract item name using regex or simple string manipulation
         item_match = re.search(r"add (.*?) to my shopping list", user_message.lower())
         if item_match:
             item = item_match.group(1)
+            print(f"Adding item to shopping list: {item}")
             add_to_shopping_list(session_id, item)
             return jsonify({"response": f"I've added {item} to your shopping list. Would you like to set an estimated cost for this item?"})
     
     elif "show" in user_message.lower() and "shopping list" in user_message.lower():
+        print("Processing show shopping list command")
         shopping_list = get_shopping_list(session_id)
         if not shopping_list:
+            print("Shopping list is empty")
             return jsonify({"response": "Your shopping list is empty."})
         
         items_text = "\n".join([f"- {item['item']}: Ghc{item['estimated_cost']:.2f}" 
                               for item in shopping_list])
         total = calculate_list_total(session_id)
+        print(f"Shopping list total: {total}")
         return jsonify({"response": f"Here's your shopping list:\n{items_text}\n\nTotal estimated cost: Ghc{total:.2f}"})
 
-    # ... (rest of your existing chat code)
-
-    
-    # ========= OPEN AI CALL =============
-
-    # Define functions for GPT-4 to call
-    tools = [
-        {
-            "type": "function",
-            "function": {
-                "name": "send_money",
-                "description": "Send money to a recipient using their phone number",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "amount": {
-                            "type": "number",
-                            "description": "The amount of money to send in GHC"
-                        },
-                        "phone_number": {
-                            "type": "string",
-                            "description": "The recipient's phone number (10 digits)"
-                        },
-                        "reference": {
-                            "type": "string",
-                            "description": "The reason for sending money"
-                        }
-                    },
-                    "required": ["amount", "phone_number"]
-                }
-            }
-        },
-        {
-            "type": "function",
-            "function": {
-                "name": "confirm_payout",
-                "description": "Confirm a pending money transfer after PIN verification",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "pin": {
-                            "type": "string",
-                            "description": "The user's PIN for confirming the transaction"
-                        }
-                    },
-                    "required": ["pin"]
-                }
-            }
-        },
-        {
-            "type": "function",
-            "function": {
-                "name": "add_shopping_item",
-                "description": "Add an item to the shopping list",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "item": {
-                            "type": "string",
-                            "description": "The item to add to the shopping list"
-                        },
-                        "estimated_cost": {
-                            "type": "number",
-                            "description": "The estimated cost of the item in GHC"
-                        }
-                    },
-                    "required": ["item"]
-                }
-            }
-        },
-        {
-            "type": "function",
-            "function": {
-                "name": "show_shopping_list",
-                "description": "Show the current shopping list",
-                "parameters": {
-                    "type": "object",
-                    "properties": {}
-                }
-            }
-        }
-    ]
-
+    print("Preparing OpenAI API call")
     # Add user message to session history
     chat_sessions[session_id].append({"role": "user", "content": user_message})
     
-    
-    # # Check if there's a pending payment confirmation and the message might contain a PIN
-    # if session_budgets[session_id].get('status') == "PENDING_PAYMENT_CONFIRMATION" and user_message.strip().isdigit():
-    #     # Automatically invoke the confirm_payout function with the PIN
-    #     pending_info = {
-    #     "role": "system",
-    #     "content": "There is a pending payment that needs confirmation. If the user has entered what appears to be a PIN (a numeric code), use the confirm_payout function with that PIN."
-    #     }
-    #     chat_sessions[session_id].append(pending_info)     
     if session_budgets[session_id].get('status') == "PENDING_PAYMENT_CONFIRMATION":
+        print("Adding payment confirmation context")
         pending_info = {
             "role": "system",
             "content": "There is a pending payment that needs confirmation. If the user has entered what appears to be a PIN (a numeric code), use the confirm_payout function with that PIN."
@@ -645,6 +517,7 @@ def chat_backend():
         chat_sessions[session_id].append(pending_info)
 
     # Call the OpenAI API
+    print("Making OpenAI API call")
     completion = client.chat.completions.create(
         model = "gpt-4",
         messages=chat_sessions[session_id],
@@ -653,16 +526,17 @@ def chat_backend():
         tool_choice="auto"
     )
     response_message = completion.choices[0].message
+    print("Received response from OpenAI")
 
     # Remove the temporary context message if we added it
     if session_budgets[session_id].get('status') == "PENDING_PAYMENT_CONFIRMATION":
-        # Remove the last system message if it was our pending info
+        print("Removing temporary payment confirmation context")
         if len(chat_sessions[session_id]) > 0 and chat_sessions[session_id][-1]["role"] == "system":
             chat_sessions[session_id].pop()
         
     else:
         # Normal flow - call the OpenAI API
-        
+        print("Making second OpenAI API call")
         pprint.pprint(chat_sessions[session_id])
 
         completion = client.chat.completions.create(
@@ -673,8 +547,10 @@ def chat_backend():
             tool_choice="auto"
         )
         response_message = completion.choices[0].message
+        print("Received second response from OpenAI")
         
     def extract_tool_calls(msg):
+        print("Extracting tool calls")
         if not msg:
             return None
         try:
@@ -685,20 +561,11 @@ def chat_backend():
             print(f"Error extracting tool_calls: {e}")
             return None
 
-    # tool_calls = extract_tool_calls(response_message)
-
-    # print(tool_calls)
-
     try:
         print("Processing response message...")
         pprint.pprint(response_message)
         print(type(response_message))
-        # response_message is now defined either from completion or directly for PIN handling
         
-        
-        # Check if the model wants to call a function
-        # if hasattr(response_message, 'tool_calls') and response_message.tool_calls:
-        # if tool_calls:
         if (hasattr(response_message, 'tool_calls') and response_message.tool_calls):
             print(f"Found tool calls: {len(response_message.tool_calls)}")
             # Process each function call
@@ -863,7 +730,6 @@ def chat_backend():
                         "content": function_response
                     })
                     
-                    # return jsonify({"response": function_response})
                     return jsonify({"response": function_response, "status": session_budgets[session_id]['status']})
 
             
