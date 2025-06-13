@@ -10,3 +10,4 @@ bcrypt==4.0.1
 # uwsgi==2.0.22
 alembic==1.12.1
 sqlalchemy==2.0.23
+psycopg2-binary

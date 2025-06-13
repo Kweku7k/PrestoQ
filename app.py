@@ -128,6 +128,10 @@ def calculate_list_total(session_id):
 def index():
     return render_template('index.html', title="PrestoQ")
 
+@app.route('/manifest.json')
+def manifest():
+    return app.send_static_file('manifest.json')
+
 # @app.route('/auth', methods=['GET', 'POST'])
 # def auth():
 
