@@ -655,7 +655,8 @@ def chat_backend():
                     # Get recipient name
                     name = services.momolookup(phone_number)
                     print(f"Retrieved recipient name: {name}")
-                    
+                
+                  
                     pending_transfer['name'] = name
                                     
                     # Get the current user from the session

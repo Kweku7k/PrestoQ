@@ -45,7 +45,7 @@
                                     <button class="pill-button small" style="background-color: #ff4d4d; color: white;" onclick="logout()">Logout</button></p>
                                 </div> -->
                             </div>
-                            <h6 id="ui-frontend-session-id"></h6>
+                            <!-- <h6 id="ui-frontend-session-id"></h6> -->
                             <!-- <p>Logged in as: <span id="logged-user-name">Guest</span>  -->
                             <!-- <div id="user-info" style="display: none;">
                                 <button class="pill-button small user-info" style="background-color: #ff4d4d; color: white;" onclick="logout()">Logout</button></p>
@@ -56,6 +56,8 @@
                             <input class="form-field inputformfield" type="text" id="user-input" placeholder="What are we buying!" style="margin-bottom: 1vh;" autofocus>
                             <br/>
                             <button class="pill-button full" style="background-color: white;  color: black;"  onclick="sendMessage()">Send</button>
+                            <h6 style="margin-top: 5px; color: white; text-align: center;" id="ui-frontend-session-id"></h6>
+
                         </div>
                     </div>
             </div>
@@ -133,7 +135,7 @@
         // }
 
         function appendMessage(role, text, status = null) {
-            const message = document.createElement("div");
+            const message = document.createElement("h6");
             message.className = role === "user" ? "user-message" : "ai-message";
             
             // Mask 4-digit PINs with asterisks if it's a user message
