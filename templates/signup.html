@@ -1,0 +1,69 @@
+{% extends "layout.html" %}
+
+{% block body %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header text-center">
+                    <h3>Sign Up</h3>
+                </div>
+                <div class="card-body">
+                    {% if error %}
+                    <div class="alert alert-danger">{{ error }}</div>
+                    {% endif %}
+                    
+                    {% if message %}
+                    <div class="alert alert-success">{{ message }}</div>
+                    {% endif %}
+                    
+                    <form method="POST" action="{{ url_for('signup') }}">
+                        <div class="mb-3">
+                            <label for="fullname" class="form-label">Full Name</label>
+                            <input type="text" class="form-field" id="fullname" name="fullname" placeholder="Enter your full name" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="phone_number" class="form-label">Phone Number</label>
+                            <input type="text" class="form-field" id="phone_number" name="phone_number" placeholder="Enter your phone number (e.g. +233...)" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="pin" class="form-label">Create PIN</label>
+                            <input type="password" class="form-field" id="pin" name="pin" placeholder="Create a 4-digit PIN" required maxlength="4" pattern="[0-9]{4}">
+                            <small class="form-text text-muted">Your PIN must be 4 digits</small>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="confirm_pin" class="form-label">Confirm PIN</label>
+                            <input type="password" class="form-field" id="confirm_pin" name="confirm_pin" placeholder="Confirm your PIN" required maxlength="4" pattern="[0-9]{4}">
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="pill-button">Sign Up</button>
+                        </div>
+                    </form>
+                </div>
+                <div class="card-footer text-center">
+                    <p>Already have an account? <a href="{{ url_for('login') }}">Login</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.querySelector('form');
+        const pin = document.getElementById('pin');
+        const confirmPin = document.getElementById('confirm_pin');
+        
+        form.addEventListener('submit', function(event) {
+            if (pin.value !== confirmPin.value) {
+                event.preventDefault();
+                alert('PINs do not match!');
+            }
+        });
+    });
+</script>
+{% endblock %}

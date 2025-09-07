@@ -16,20 +16,28 @@ from flask_migrate import Migrate
 
 import requests
 
+# from models import User
 from services import create_response, send_otp, tools
 import services
+import authlogic as authservices
 
 app = Flask(__name__)
 
 # Initialize Flask-Migrate
 
 # Initialize SQLAlchemy
+
 CORS(app)
 
 # Set your API key
 api_key = os.getenv("OPENAI_API_KEY")  # or hardcode it for now
+
 # db_uri = os.getenv("PG_DB_URL")  # or hardcode it for now
+
 DATABASE_URI = os.getenv("Q_DATABASE_URI") 
+
+JWT_ALGORITHM = "HS256"
+JWT_SECRET = "nyc1-01-1738839311150-s-2vcpu-2gb-90gb-intel"
 
 
 client = OpenAI(
@@ -51,48 +59,6 @@ db = SQLAlchemy()
 db.init_app(app)
 migrate = Migrate(app, db)
 
-
-class User(db.Model):
-    __tablename__ = 'users'
-    
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(80))
-    pin = db.Column(db.String(120))
-    phone_number = db.Column(db.String(15), unique=True)
-    created_at = db.Column(db.DateTime, default=datetime.now())
-    transactions = db.relationship('Transaction', backref='user', lazy=True)
-    shopping_lists = db.relationship('ShoppingList', backref='user', lazy=True)
-
-class Transaction(db.Model):
-    __tablename__ = 'transactions'
-    
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    description = db.Column(db.String(200), nullable=False)
-    amount = db.Column(db.Float, nullable=False)
-    transaction_type = db.Column(db.String(20), nullable=False)  # 'send' or 'receive'
-    recipient_phone = db.Column(db.String(15))
-    reference = db.Column(db.String(200))
-    created_at = db.Column(db.DateTime, default=datetime.now())
-
-class ShoppingList(db.Model):
-    __tablename__ = 'shopping_lists'
-    
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    name = db.Column(db.String(100), nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.now())
-    items = db.relationship('ShoppingListItem', backref='shopping_list', lazy=True)
-
-class ShoppingListItem(db.Model):
-    __tablename__ = 'shopping_list_items'
-    
-    id = db.Column(db.Integer, primary_key=True)
-    shopping_list_id = db.Column(db.Integer, db.ForeignKey('shopping_lists.id'), nullable=False)
-    item = db.Column(db.String(100), nullable=False)
-    estimated_cost = db.Column(db.Float)
-    purchased = db.Column(db.Boolean, default=False)
-    added_date = db.Column(db.DateTime, default=datetime.now())
 
 past_transactions = [
     ("Bought coffee", 3.50),
@@ -137,78 +103,28 @@ def manifest():
 
 
 # Mock database for users
-users_db = {}
+# users_db = {}
 
-# JWT config
-JWT_SECRET = 'your-secret-key'
-JWT_ALGORITHM = 'HS256'
+# # JWT config
+# JWT_SECRET = 'your-secret-key'
+# JWT_ALGORITHM = 'HS256'
 
-def token_required(f):
-    @wraps(f)
-    def decorated(*args, **kwargs):
-        token = request.headers.get('Authorization')
-        if not token:
-            return jsonify({'message': 'Token is missing'}), 401
-        try:
-            data = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
-            current_user = users_db.get(data['username'])
-        except:
-            return jsonify({'message': 'Token is invalid'}), 401
-        return f(current_user, *args, **kwargs)
-    return decorated
-
-@app.route('/auth/signup', methods=['GET', 'POST'])
-def signup():
-    if request.method == 'POST':
-        username = request.form.get('username')
-        password = request.form.get('password')
-        
-        if not username or not password:
-            return render_template('signup.html', error='Missing username or password')
-            
-        if username in users_db:
-            return render_template('signup.html', error='Username already exists')
-            
-        # Hash password
-        hashed = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
-        
-        # Store user
-        users_db[username] = {
-            'username': username,
-            'password': hashed
-        }
-        
-        return render_template('login.html', message='User created successfully')
-        
-    return render_template('signup.html')
+# def token_required(f):
+#     @wraps(f)
+#     def decorated(*args, **kwargs):
+#         token = request.headers.get('Authorization')
+#         if not token:
+#             return jsonify({'message': 'Token is missing'}), 401
+#         try:
+#             data = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+#             current_user = users_db.get(data['username'])
+#         except:
+#             return jsonify({'message': 'Token is invalid'}), 401
+#         return f(current_user, *args, **kwargs)
+#     return decorated
 
 
-@app.route('/auth/login', methods=['POST'])
-def login():
-    data = request.get_json()
-    username = data.get('username')
-    password = data.get('password')
-    
-    if not username or not password:
-        return jsonify({'message': 'Missing username or password'}), 400
-        
-    user = users_db.get(username)
-    if not user:
-        return jsonify({'message': 'User not found'}), 404
-        
-    if not bcrypt.checkpw(password.encode('utf-8'), user['password']):
-        return jsonify({'message': 'Invalid password'}), 401
-        
-    # Generate JWT token
-    token = jwt.encode({
-        'username': username,
-        'exp': datetime.now() + timedelta(hours=24)
-    }, JWT_SECRET, algorithm=JWT_ALGORITHM)
-    
-    return jsonify({
-        'message': 'Login successful',
-        'token': token
-    })    
+  
 
 @app.route('/chat', methods=['GET', 'POST'])
 def chat():
@@ -237,45 +153,46 @@ def chat_backend():
         token = request.headers.get('Authorization')
         
     if token:
-        print("Processing token")
-        try:
-            # Verify the token
-            print("Decoding JWT token")
-            decoded = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
-            username = decoded.get('username')
-            phone_number = decoded.get('phone_number')
-            print(f"Decoded token: username={username}, phone_number={phone_number}")
+        authservices.check_token(session_budgets, session_id, JWT_SECRET, JWT_ALGORITHM, token)
+        # print("Processing token")
+        # try:
+        #     # Verify the token
+        #     print("Decoding JWT token")
+        #     decoded = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        #     username = decoded.get('username')
+        #     phone_number = decoded.get('phone_number')
+        #     print(f"Decoded token: username={username}, phone_number={phone_number}")
             
-            # Find the user in the database
-            user = None
-            if phone_number:
-                print(f"Looking up user by phone number: {phone_number}")
-                user = User.query.filter_by(phone_number=phone_number).first()
-            elif username:
-                print(f"Looking up user by username: {username}")
-                user = User.query.filter_by(username=username).first()
+        #     # Find the user in the database
+        #     user = None
+        #     if phone_number:
+        #         print(f"Looking up user by phone number: {phone_number}")
+        #         user = User.query.filter_by(phone_number=phone_number).first()
+        #     elif username:
+        #         print(f"Looking up user by username: {username}")
+        #         user = User.query.filter_by(username=username).first()
                 
-            if user:
-                print(f"Found user: {user.username}")
-                # User is authenticated via JWT
-                if session_budgets.get(session_id, None) is None:
-                    print("Creating new session budget")
-                    session_budgets[session_id] = {
-                        "status": "LOGGED_IN",
-                        "pending": False,
-                        "user": user
-                    }
-                elif session_budgets[session_id].get('status') not in ["LOGGED_IN", "PENDING_PAYMENT_CONFIRMATION"]:
-                    print("Updating existing session budget")
-                    # Only override status if it's not already in a special state
-                    session_budgets[session_id]['status'] = "LOGGED_IN"
-                    session_budgets[session_id]['pending'] = False
-                    session_budgets[session_id]['user'] = user
+        #     if user:
+        #         print(f"Found user: {user.username}")
+        #         # User is authenticated via JWT
+        #         if session_budgets.get(session_id, None) is None:
+        #             print("Creating new session budget")
+        #             session_budgets[session_id] = {
+        #                 "status": "LOGGED_IN",
+        #                 "pending": False,
+        #                 "user": user
+        #             }
+        #         elif session_budgets[session_id].get('status') not in ["LOGGED_IN", "PENDING_PAYMENT_CONFIRMATION"]:
+        #             print("Updating existing session budget")
+        #             # Only override status if it's not already in a special state
+        #             session_budgets[session_id]['status'] = "LOGGED_IN"
+        #             session_budgets[session_id]['pending'] = False
+        #             session_budgets[session_id]['user'] = user
 
-        except Exception as e:
-            print(f"Token verification error: {str(e)}")
-            # Token is invalid, continue with normal flow
-            pass
+        # except Exception as e:
+        #     print(f"Token verification error: {str(e)}")
+        #     # Token is invalid, continue with normal flow
+        #     pass
     
     # check to see if a user is logged in, if not request phone number and send an otp for confirmation of user
     if session_budgets.get(session_id, None) is None:
@@ -296,184 +213,22 @@ def chat_backend():
     print("SESSION BUDGETS:")
     pprint.pprint(session_budgets)
         
-    # if session_budgets[session_id]['status'] == "PENDING_PHONE_NUMBER":
-    #     print("Processing phone number verification")
-    #     # check if the phone number is correct
-    #     # lets verify if this is an actual phone number
-    #     user_message = user_message.replace(" ", "").replace("-", "")
-    #     print(f"Formatted phone number: {user_message}")
-        
-    #     if not re.match(r'^\+\d{9,15}$', user_message):   
-    #         print("Invalid phone number format")
-    #         #  check to see if there is a plus starting the phone number if not tell the user to start with a +
-    #         if not user_message.startswith("+"):
-    #             return jsonify({
-    #                 "response": f"❌ Phone Number should be in format: +233"
-    #             })
 
-    #         return jsonify({
-    #             "response": f"❌ Invalid phone number, please try again"
-    #         })
-        
-    #     print("Looking up user by phone number")
-    #     user = User.query.filter_by(phone_number=user_message).first()
-        
-    #     if user is None:
-    #         print("User not found - creating new user")
-    #         # check if user already exists
-    #         user = User.query.filter_by(username=user_message).first()
-            
-    #         new_user = User(phone_number=user_message, username="USER", pin="0000")
-    #         db.session.add(new_user)
-    #         db.session.commit()
-    #         print(f"Created new user with phone number {user_message}")
-            
-    #         session_budgets[session_id]['status'] = "PENDING_NAME"
-    #         session_budgets[session_id]['phone_number'] = user_message
-    #         return jsonify({
-    #             "response": f"Hi! I am Mama Lizy, what is your name?"
-    #         })
-            
-    #     print(f"Found existing user: {user.username}")
-    #     session_budgets[session_id]['user'] = user
-        
-    #     session_budgets[session_id]['status'] = "PENDING_OTP"
-    #     print("Sending OTP")
-    #     send_otp(user.phone_number)
-    #     return jsonify({
-    #             "response": f"Hi {user.username}, I just shot you an otp, please verify!"
-    #         })
-    
-    
-    # Then in your PENDING_PHONE_NUMBER handler:
     if session_budgets[session_id]['status'] == "PENDING_PHONE_NUMBER":
-        print("Processing phone number verification")
-        # check if the phone number is correct
-        # lets verify if this is an actual phone number
-        clean_message = user_message.replace(" ", "").replace("-", "")
-        print(f"Formatted phone number: {clean_message}")
-        
-        # Check if it looks like a phone number
-        if not re.match(r'^\+\d{9,15}$', clean_message):   
-            print("Invalid phone number format")
-            #  check to see if there is a plus starting the phone number
-            if not clean_message.startswith("+"):
-                return create_response("❌ Phone Number should be in format: +233", "PENDING_PHONE_NUMBER")
+        return authservices.handle_phone_verification(session_id, user_message, session_budgets)
 
-            return create_response("❌ Invalid phone number, please try again", "PENDING_PHONE_NUMBER")
-        
-        print("Looking up user by phone number")
-        user = User.query.filter_by(phone_number=clean_message).first()
-        
-        if user is None:
-            print("User not found - creating new user")
-            # Create new user
-            new_user = User(phone_number=clean_message, username="USER", pin="0000")
-            try:
-                db.session.add(new_user)
-                db.session.commit()
-                user = new_user
-            except Exception as e:
-                print(f"Error creating user: {str(e)}")
-                return create_response("Error creating user account. Please try again.", "ERROR")
-        
-        # User exists or was created successfully
-        session_budgets[session_id]['user'] = user
-        session_budgets[session_id]['status'] = "LOGGED_IN"
-        
-        # Generate JWT token for persistence
-        try:
-            token = jwt.encode({
-                'username': user.username,
-                'phone_number': user.phone_number,
-                'exp': datetime.now() + timedelta(days=30)
-            }, JWT_SECRET, algorithm=JWT_ALGORITHM)
-            
-            return create_response(f"Hi {user.username}, welcome back!", "LOGGED_IN", token)
-        except Exception as e:
-            print(f"Error generating token: {str(e)}")
-            # Fallback - still log them in even if token generation fails
-            return create_response(f"Hi {user.username}, welcome back! (Note: Session persistence unavailable)", "LOGGED_IN")
+    elif session_budgets[session_id]['status'] == "PENDING_NAME":
+        return authservices.handle_name_input(session_id, user_message, session_budgets)
 
+    elif session_budgets[session_id]['status'] == "PENDING_PIN_CREATION":
+        return authservices.handle_pin_creation(session_id, user_message, session_budgets, JWT_SECRET, JWT_ALGORITHM)
 
-        
-    if session_budgets[session_id]['status'] == "PENDING_NAME":
-        print("Processing name input")
-        # check if the phone number is correct
-        user = User.query.filter_by(phone_number=session_budgets[session_id]['phone_number']).first()
+    elif session_budgets[session_id]['status'] == "PENDING_PIN":
+        return authservices.handle_pin_verification(session_id, user_message, session_budgets, JWT_SECRET, JWT_ALGORITHM)
 
-        if user is not None:
-            print(f"Updating username to: {user_message}")
-            user.username = user_message
-            db.session.commit()
-            
-        # Generate JWT token for persistence
-        print("Generating JWT token")
-        token = jwt.encode({
-            'username': user_message,
-            'phone_number': session_budgets[session_id]['phone_number'],
-            'exp': datetime.utcnow() + datetime.timedelta(days=30)
-        }, JWT_SECRET, algorithm=JWT_ALGORITHM)
+    elif session_budgets[session_id]['status'] == "PENDING_PAYMENT_CONFIRMATION":
+        return authservices.handle_payment_confirmation(session_id, user_message, session_budgets)
 
-        session_budgets[session_id]['status'] = "LOGGED_IN"
-        session_budgets[session_id]['pending'] = False
-        session_budgets[session_id]['user'] = user
-        
-        return jsonify({
-            "response": f"✅ You're logged in",
-            "token": token
-        })
-        
-    if session_budgets[session_id]['status'] == "PENDING_OTP":
-        print("Verifying OTP")
-        # check if the otp is correct
-        # check to see if the input is not null
-        
-        if int(user_message) == session_budgets[session_id]['otp']:
-            print("OTP verified successfully")
-            user = session_budgets[session_id]['user']
-            
-            # Generate JWT token for persistence
-            print("Generating JWT token")
-            token = jwt.encode({
-                'username': user.username,
-                'phone_number': user.phone_number,
-                'exp': datetime.now() + timedelta(days=30)
-            }, JWT_SECRET, algorithm=JWT_ALGORITHM)
-            
-            session_budgets[session_id]['status'] = "LOGGED_IN"
-            session_budgets[session_id]['pending'] = False
-            
-            return jsonify({
-                "response": f"Heyyyy {user.username}, welcome back!",
-                "token": token
-            })
-        else:
-            print("Invalid OTP")
-            return jsonify({
-                "response": f"❌ Invalid OTP, please try again"
-            })
-
-      # Set budget if provided and not already set
-      
-    if session_budgets[session_id]['status'] == "PENDING_PAYMENT_CONFIRMATION":
-        print("Processing payment confirmation")
-        if "yes" in user_message.lower() and "pending_transfer" in session_budgets.get(session_id, {}):
-            print("User confirmed payment")
-            tx = session_budgets[session_id]["pending_transfer"]
-
-
-            payoutId = session_budgets[session_id]['pending_payout']['id']
-            print(f"Confirming payout ID: {payoutId}")
-            response = services.confirm_payout(payoutId) #TODO: MAKE THIS PAYOUT CONFIRMATION
-
-            if response:
-                print("Payment confirmed successfully")
-                session_budgets[session_id].pop("pending_transfer", None)
-                return jsonify({"response": f"✅ Sent GHC {tx['amount']:.2f} to {tx['phone_number']} for \"{tx['reference']}\"."})
-            else:
-                print("Payment confirmation failed")
-                return jsonify({"response": "❌ Something went wrong while trying to send the money. Please try again later."})
     
     print("Calculating budget context")
     total_spent_amount = total_spent()
